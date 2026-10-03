@@ -1,0 +1,6 @@
+{
+  "name": "HOMEo AI",
+  "description": "Smart Homeopathy Clinic Platform with 3D Experience, Real Patient Booking, Live Queue, Voice AI, and Doctor Management.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
