@@ -90,7 +90,7 @@ abstract class AppDatabase : RoomDatabase() {
                 showPhoneNumberOnPublicPage = true,
                 tagline = "Smart Clinic. Better Care.",
                 description = "Holistic Classical Homeopathy with precision diagnostics, constitutional case analysis, and gentle individualised healing.",
-                website = "",
+                website = "https://yuga-bharathi.vercel.app",
                 workingHoursSummary = "Mon - Sat: 9:00 AM - 1:00 PM & 4:00 PM - 8:00 PM",
                 defaultConsultationFee = 500.0,
                 facilities = "Digital Case Repository, Live Token Dispenser, Pure Potentised Pharmacy, Air-conditioned Waiting Lounge",

@@ -246,6 +246,45 @@ function handleBookingSubmit(event) {
   showConfirmation(newAppointment);
 }
 
+const APP_CLOUD_URL = "https://ais-pre-krh3ojasrp76qf4324mwph-653917990697.asia-southeast1.run.app";
+const ANDROID_PACKAGE = "com.aistudio.homeoai.clnxrt";
+
+function openAndroidAppDirectly() {
+  const isAndroid = /Android/i.test(navigator.userAgent);
+  if (isAndroid) {
+    const intentUri = `intent:#Intent;package=${ANDROID_PACKAGE};S.browser_fallback_url=${encodeURIComponent(APP_CLOUD_URL)};end`;
+    window.location.href = intentUri;
+    setTimeout(() => {
+      if (document.hidden || document.webkitHidden) return;
+      window.open(APP_CLOUD_URL, "_blank");
+    }, 1500);
+  } else {
+    window.open(APP_CLOUD_URL, "_blank");
+  }
+}
+
+function openBookingInAndroidApp() {
+  if (!currentBooking) {
+    openAndroidAppDirectly();
+    return;
+  }
+  const query = `id=${encodeURIComponent(currentBooking.id)}&name=${encodeURIComponent(currentBooking.patientName)}&phone=${encodeURIComponent(currentBooking.patientPhone)}&age=${encodeURIComponent(currentBooking.patientAge || 30)}&gender=${encodeURIComponent(currentBooking.patientGender || "Male")}&date=${encodeURIComponent(currentBooking.date)}&time=${encodeURIComponent(currentBooking.timeSlot)}&mode=${encodeURIComponent(currentBooking.consultationType)}&symptoms=${encodeURIComponent(currentBooking.symptoms || "")}`;
+  
+  const isAndroid = /Android/i.test(navigator.userAgent);
+  if (isAndroid) {
+    // If Android app is installed, open app directly & pass booking
+    // If not installed, Chrome automatically redirects to APP_CLOUD_URL without breaking
+    const intentUri = `intent://appointment?${query}#Intent;scheme=homeoclinic;package=${ANDROID_PACKAGE};S.browser_fallback_url=${encodeURIComponent(APP_CLOUD_URL)};end`;
+    window.location.href = intentUri;
+    setTimeout(() => {
+      if (document.hidden || document.webkitHidden) return;
+      window.open(APP_CLOUD_URL, "_blank");
+    }, 1500);
+  } else {
+    window.open(APP_CLOUD_URL, "_blank");
+  }
+}
+
 // ================= CONFIRMATION MODAL =================
 function showConfirmation(appt) {
   document.getElementById("confirmApptId").textContent = appt.id;
@@ -254,13 +293,6 @@ function showConfirmation(appt) {
   document.getElementById("confirmDateTime").textContent = `${appt.date} at ${appt.timeSlot}`;
   document.getElementById("confirmMode").textContent =
     appt.consultationType === "IN_CLINIC" ? "In-Clinic Visit (Chennai)" : "Online Video Consultation";
-
-  // Configure Deep Link to Android App
-  const syncBtn = document.getElementById("syncAppBtn");
-  if (syncBtn) {
-    const deepLink = `homeoclinic://appointment?id=${encodeURIComponent(appt.id)}&name=${encodeURIComponent(appt.patientName)}&phone=${encodeURIComponent(appt.patientPhone)}&age=${encodeURIComponent(appt.patientAge || 30)}&gender=${encodeURIComponent(appt.patientGender || "Male")}&date=${encodeURIComponent(appt.date)}&time=${encodeURIComponent(appt.timeSlot)}&mode=${encodeURIComponent(appt.consultationType)}&symptoms=${encodeURIComponent(appt.symptoms || "")}`;
-    syncBtn.setAttribute("href", deepLink);
-  }
 
   const modal = document.getElementById("confirmationModal");
   if (modal) {
@@ -279,14 +311,14 @@ function closeConfirmationModal() {
 
 function sendWhatsAppConfirmation() {
   if (!currentBooking) return;
-  const msg = `*HOMEo Clinic Pro - Appointment Booking*%0A%0A` +
-    `*Token ID:* ${currentBooking.id}%0A` +
-    `*Patient:* ${currentBooking.patientName}%0A` +
-    `*Phone:* ${currentBooking.patientPhone}%0A` +
-    `*Date:* ${currentBooking.date}%0A` +
-    `*Time:* ${currentBooking.timeSlot}%0A` +
-    `*Type:* ${currentBooking.consultationType === "IN_CLINIC" ? "In-Clinic Visit" : "Online Video"}%0A` +
-    `*Doctor:* Dr. Yuga Bharathi%0A%0A` +
+  const msg = `*HOMEo Clinic Pro - Appointment Ticket*%0A%0A` +
+    `*Patient Name:* ${encodeURIComponent(currentBooking.patientName)}%0A` +
+    `*Booking ID:* ${encodeURIComponent(currentBooking.id)}%0A` +
+    `*Appointment Date:* ${encodeURIComponent(currentBooking.date)}%0A` +
+    `*Appointment Time:* ${encodeURIComponent(currentBooking.timeSlot)}%0A` +
+    `*Doctor Name:* Dr. Yuga Bharathi, B.H.M.S%0A` +
+    `*Consultation Type:* ${currentBooking.consultationType === "IN_CLINIC" ? "In-Clinic Visit (Chennai)" : "Online Video Consultation"}%0A` +
+    `*Patient Phone:* ${encodeURIComponent(currentBooking.patientPhone)}%0A%0A` +
     `_Please confirm my consultation. Thank you!_`;
 
   window.open(`https://wa.me/${CLINIC_INFO.cleanPhone}?text=${msg}`, "_blank");

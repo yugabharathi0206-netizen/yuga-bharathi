@@ -36,6 +36,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 object AppUrlConstants {
+    const val VERCEL_WEB_URL = "https://yuga-bharathi.vercel.app"
     const val SHARED_APP_URL = "https://ais-pre-krh3ojasrp76qf4324mwph-653917990697.asia-southeast1.run.app"
     const val DEV_APP_URL = "https://ais-dev-krh3ojasrp76qf4324mwph-653917990697.asia-southeast1.run.app"
 }
@@ -53,21 +54,21 @@ fun AppShareAndScannerDialog(
     val clinic by repository.clinic.collectAsStateWithLifecycle(initialValue = null)
 
     var selectedTab by remember { mutableIntStateOf(initialTab) }
-    var selectedUrlType by remember { mutableIntStateOf(if (clinic?.website.orEmpty().isNotBlank()) 2 else 0) }
+    var selectedUrlType by remember { mutableIntStateOf(0) }
     var customUrlInput by remember { mutableStateOf(clinic?.website.orEmpty()) }
 
     LaunchedEffect(clinic?.website) {
         val savedSite = clinic?.website.orEmpty()
         if (savedSite.isNotBlank() && customUrlInput.isBlank()) {
             customUrlInput = savedSite
-            selectedUrlType = 2
         }
     }
     
     val activeUrl = when (selectedUrlType) {
-        0 -> AppUrlConstants.DEV_APP_URL
+        0 -> AppUrlConstants.VERCEL_WEB_URL
         1 -> AppUrlConstants.SHARED_APP_URL
-        else -> customUrlInput.ifBlank { AppUrlConstants.DEV_APP_URL }
+        2 -> AppUrlConstants.DEV_APP_URL
+        else -> customUrlInput.ifBlank { AppUrlConstants.VERCEL_WEB_URL }
     }
 
     val allApts by repository.allAppointments.collectAsStateWithLifecycle(initialValue = emptyList())
@@ -189,7 +190,7 @@ fun AppShareAndScannerDialog(
                             .verticalScroll(rememberScrollState()),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        // Environment Switcher: Dev URL vs Shared URL vs Custom
+                        // Environment Switcher: Vercel Web vs Shared App vs Dev vs Custom
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -199,7 +200,7 @@ fun AppShareAndScannerDialog(
                             FilterChip(
                                 selected = selectedUrlType == 0,
                                 onClick = { selectedUrlType = 0 },
-                                label = { Text("Dev URL (Active)", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
+                                label = { Text("Vercel Web", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
                                 leadingIcon = {
                                     if (selectedUrlType == 0) Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(13.dp))
                                 },
@@ -208,7 +209,7 @@ fun AppShareAndScannerDialog(
                             FilterChip(
                                 selected = selectedUrlType == 1,
                                 onClick = { selectedUrlType = 1 },
-                                label = { Text("Shared URL", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
+                                label = { Text("App Link", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
                                 leadingIcon = {
                                     if (selectedUrlType == 1) Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(13.dp))
                                 },
@@ -221,7 +222,7 @@ fun AppShareAndScannerDialog(
                                 leadingIcon = {
                                     if (selectedUrlType == 2) Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(13.dp))
                                 },
-                                modifier = Modifier.weight(0.7f)
+                                modifier = Modifier.weight(0.8f)
                             )
                         }
 
