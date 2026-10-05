@@ -22,6 +22,7 @@ const STORAGE_KEYS = {
 // Default Sample Seed Data if first time opening
 function getStoredAppointments() {
   try {
+    if (typeof localStorage === "undefined") return [];
     const raw = localStorage.getItem(STORAGE_KEYS.APPOINTMENTS);
     if (!raw) {
       const initialSeed = [
@@ -51,6 +52,7 @@ function getStoredAppointments() {
 
 function saveAppointments(appts) {
   try {
+    if (typeof localStorage === "undefined") return;
     localStorage.setItem(STORAGE_KEYS.APPOINTMENTS, JSON.stringify(appts));
   } catch (e) {
     console.error("Storage write error", e);
@@ -61,26 +63,28 @@ function saveAppointments(appts) {
 let currentBooking = null;
 
 // ================= INITIALIZATION =================
-document.addEventListener("DOMContentLoaded", () => {
-  initDateLimits();
-  checkAdminSession();
+if (typeof document !== "undefined") {
+  document.addEventListener("DOMContentLoaded", () => {
+    initDateLimits();
+    checkAdminSession();
 
-  // Close modals on clicking overlay backdrop
-  document.addEventListener("click", (e) => {
-    if (e.target.classList && e.target.classList.contains("modal-overlay")) {
-      e.target.classList.remove("active");
-      document.body.style.overflow = "";
-    }
-  });
+    // Close modals on clicking overlay backdrop
+    document.addEventListener("click", (e) => {
+      if (e.target.classList && e.target.classList.contains("modal-overlay")) {
+        e.target.classList.remove("active");
+        document.body.style.overflow = "";
+      }
+    });
 
-  // Close modals on pressing Escape
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") {
-      document.querySelectorAll(".modal-overlay.active").forEach(m => m.classList.remove("active"));
-      document.body.style.overflow = "";
-    }
+    // Close modals on pressing Escape
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        document.querySelectorAll(".modal-overlay.active").forEach(m => m.classList.remove("active"));
+        document.body.style.overflow = "";
+      }
+    });
   });
-});
+}
 
 // Setup Date constraints (Today up to 30 days ahead)
 function initDateLimits() {
@@ -468,4 +472,15 @@ function exportAppointmentsCSV() {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+}
+
+// Node.js / Vercel Serverless Function fallback
+// Prevents FUNCTION_INVOCATION_FAILED if Vercel ever executes app.js as a serverless function
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = (req, res) => {
+    if (res && typeof res.writeHead === "function") {
+      res.writeHead(302, { Location: "/" });
+      res.end();
+    }
+  };
 }

@@ -12,14 +12,19 @@
  * 5. Copy the firebaseConfig object and paste it below:
  */
 
-window.FIREBASE_CONFIG = {
-  apiKey: "",
-  authDomain: "",
-  projectId: "",
-  storageBucket: "",
-  messagingSenderId: "",
-  appId: ""
-};
+// Guard against server-side execution (Node.js / Vercel Serverless Function)
+if (typeof window !== "undefined") {
+  window.FIREBASE_CONFIG = {
+    apiKey: "",
+    authDomain: "",
+    projectId: "",
+    storageBucket: "",
+    messagingSenderId: "",
+    appId: ""
+  };
 
-// Check if Firebase is enabled
-window.IS_FIREBASE_ENABLED = Boolean(window.FIREBASE_CONFIG && window.FIREBASE_CONFIG.projectId);
+  // Check if Firebase is enabled
+  window.IS_FIREBASE_ENABLED = Boolean(window.FIREBASE_CONFIG && window.FIREBASE_CONFIG.projectId);
+} else if (typeof module !== "undefined" && module.exports) {
+  module.exports = {};
+}

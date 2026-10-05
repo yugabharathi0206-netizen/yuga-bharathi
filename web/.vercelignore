@@ -1,0 +1,3 @@
+# Ignore local dev server and archives from Vercel deployment
+server.js
+clinic-web-app.zip
