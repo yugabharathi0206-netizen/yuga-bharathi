@@ -4,6 +4,7 @@
   "description": "Public Web Booking Portal for HOMEo Clinic Pro",
   "main": "index.html",
   "scripts": {
+    "build": "echo 'Static site ready for Vercel'",
     "start": "npx serve ."
   },
   "keywords": ["clinic", "booking", "homeopathy", "appointment"],

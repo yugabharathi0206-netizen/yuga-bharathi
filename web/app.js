@@ -64,6 +64,22 @@ let currentBooking = null;
 document.addEventListener("DOMContentLoaded", () => {
   initDateLimits();
   checkAdminSession();
+
+  // Close modals on clicking overlay backdrop
+  document.addEventListener("click", (e) => {
+    if (e.target.classList && e.target.classList.contains("modal-overlay")) {
+      e.target.classList.remove("active");
+      document.body.style.overflow = "";
+    }
+  });
+
+  // Close modals on pressing Escape
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      document.querySelectorAll(".modal-overlay.active").forEach(m => m.classList.remove("active"));
+      document.body.style.overflow = "";
+    }
+  });
 });
 
 // Setup Date constraints (Today up to 30 days ahead)
