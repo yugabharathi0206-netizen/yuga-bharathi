@@ -35,6 +35,9 @@ import com.example.ui.voice.VoiceAssistantManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import android.content.Intent
+import android.widget.Toast
 
 enum class AppScreen {
     WELCOME_3D,
@@ -48,21 +51,68 @@ enum class AppScreen {
 
 class MainActivity : ComponentActivity() {
 
+    private lateinit var repository: ClinicRepository
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
         val database = AppDatabase.getDatabase(this)
-        val repository = ClinicRepository(database.clinicDao())
+        repository = ClinicRepository(database.clinicDao())
 
         // Ensure database initial data is seeded
         CoroutineScope(Dispatchers.IO).launch {
             AppDatabase.populateInitialData(database.clinicDao())
         }
 
+        // Handle incoming web booking deep link
+        handleWebBookingIntent(intent)
+
         setContent {
             MyApplicationTheme {
                 HomeoApp(repository = repository)
+            }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleWebBookingIntent(intent)
+    }
+
+    private fun handleWebBookingIntent(intent: Intent?) {
+        val uri = intent?.data ?: return
+        if (uri.scheme == "homeoclinic" && uri.host == "appointment") {
+            val id = uri.getQueryParameter("id") ?: "HM-${System.currentTimeMillis() % 100000}"
+            val name = uri.getQueryParameter("name") ?: "Web Patient"
+            val phone = uri.getQueryParameter("phone") ?: "9876543210"
+            val age = uri.getQueryParameter("age")?.toIntOrNull() ?: 30
+            val gender = uri.getQueryParameter("gender") ?: "Not Specified"
+            val date = uri.getQueryParameter("date") ?: java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date())
+            val time = uri.getQueryParameter("time") ?: "10:00 AM"
+            val mode = uri.getQueryParameter("mode") ?: "IN_CLINIC"
+            val symptoms = uri.getQueryParameter("symptoms") ?: "Web Booking"
+
+            CoroutineScope(Dispatchers.IO).launch {
+                repository.importWebBooking(
+                    id = id,
+                    patientName = name,
+                    patientPhone = phone,
+                    patientAge = age,
+                    patientGender = gender,
+                    date = date,
+                    timeSlot = time,
+                    consultationType = mode,
+                    symptoms = symptoms
+                )
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(
+                        this@MainActivity,
+                        "✓ Web Appointment Received: $name on $date at $time",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
             }
         }
     }

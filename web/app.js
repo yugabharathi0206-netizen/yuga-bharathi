@@ -255,6 +255,13 @@ function showConfirmation(appt) {
   document.getElementById("confirmMode").textContent =
     appt.consultationType === "IN_CLINIC" ? "In-Clinic Visit (Chennai)" : "Online Video Consultation";
 
+  // Configure Deep Link to Android App
+  const syncBtn = document.getElementById("syncAppBtn");
+  if (syncBtn) {
+    const deepLink = `homeoclinic://appointment?id=${encodeURIComponent(appt.id)}&name=${encodeURIComponent(appt.patientName)}&phone=${encodeURIComponent(appt.patientPhone)}&age=${encodeURIComponent(appt.patientAge || 30)}&gender=${encodeURIComponent(appt.patientGender || "Male")}&date=${encodeURIComponent(appt.date)}&time=${encodeURIComponent(appt.timeSlot)}&mode=${encodeURIComponent(appt.consultationType)}&symptoms=${encodeURIComponent(appt.symptoms || "")}`;
+    syncBtn.setAttribute("href", deepLink);
+  }
+
   const modal = document.getElementById("confirmationModal");
   if (modal) {
     modal.classList.add("active");

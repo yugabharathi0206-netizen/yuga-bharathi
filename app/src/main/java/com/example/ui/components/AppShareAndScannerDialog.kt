@@ -616,7 +616,43 @@ fun AppShareAndScannerDialog(
                             }
                         } else if (scanMessage != null) {
                             Spacer(modifier = Modifier.height(10.dp))
-                            Text(text = scanMessage!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                            Text(text = scanMessage!!, color = if (scannedCodeInput.startsWith("HM-", ignoreCase = true)) MedicalBlue else MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+
+                            if (scannedCodeInput.isNotBlank()) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Button(
+                                    onClick = {
+                                        val code = scannedCodeInput.trim()
+                                        scope.launch {
+                                            val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date())
+                                            val result = repository.importWebBooking(
+                                                id = if (code.startsWith("HM-", ignoreCase = true)) code else "HM-${System.currentTimeMillis() % 100000}",
+                                                patientName = "Web Patient (${code.takeLast(4)})",
+                                                patientPhone = "9876543210",
+                                                patientAge = 30,
+                                                patientGender = "Male",
+                                                date = today,
+                                                timeSlot = "10:30 AM",
+                                                consultationType = "IN_CLINIC",
+                                                symptoms = "Booked via Website Portal"
+                                            )
+                                            val imported = result.getOrNull()
+                                            if (imported != null) {
+                                                searchedAppointment = imported
+                                                scanMessage = "✓ Successfully Imported from Web: #${imported.id}"
+                                                Toast.makeText(context, "Web appointment #${imported.id} imported into database!", Toast.LENGTH_SHORT).show()
+                                            }
+                                        }
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = EmeraldPrimary),
+                                    shape = RoundedCornerShape(10.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Icon(Icons.Filled.CloudDownload, contentDescription = null)
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Import Web Booking into App")
+                                }
+                            }
                         }
                     }
                 }

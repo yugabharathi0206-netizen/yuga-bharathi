@@ -940,4 +940,85 @@ class ClinicRepository(private val dao: ClinicDao) {
             dao.updateAppointment(apt.copy(status = AppointmentStatus.COMPLETED, updatedAt = System.currentTimeMillis()))
         }
     }
+
+    // Direct Web Appointment Synchronization
+    suspend fun importWebBooking(
+        id: String,
+        patientName: String,
+        patientPhone: String,
+        patientAge: Int,
+        patientGender: String,
+        date: String,
+        timeSlot: String,
+        consultationType: String,
+        symptoms: String
+    ): Result<AppointmentEntity> {
+        val existing = dao.getAppointmentById(id)
+        if (existing != null) {
+            return Result.success(existing)
+        }
+
+        val doctor = dao.getFirstDoctor()
+        val doctorId = doctor?.id ?: "doc_main"
+        val doctorName = doctor?.name ?: "Dr. Yuga Bharathi"
+
+        // Find or create patient record
+        var patient = dao.getPatientByPhone(patientPhone)
+        if (patient == null) {
+            patient = PatientEntity(
+                id = "patient_${System.currentTimeMillis()}",
+                fullName = patientName,
+                phone = patientPhone,
+                age = patientAge,
+                gender = patientGender,
+                currentConcerns = symptoms
+            )
+            dao.insertOrUpdatePatient(patient)
+        }
+
+        val maxToken = dao.getMaxTokenForDate(date) ?: 0
+        val assignedToken = maxToken + 1
+
+        val type = if (consultationType.contains("ONLINE", ignoreCase = true)) {
+            AppointmentType.ONLINE
+        } else {
+            AppointmentType.IN_CLINIC
+        }
+
+        val newAppt = AppointmentEntity(
+            id = id,
+            clientId = patient.userId.ifBlank { "web_patient" },
+            doctorId = doctorId,
+            doctorName = doctorName,
+            patientId = patient.id,
+            patientName = patientName,
+            patientPhone = patientPhone,
+            patientAge = patientAge,
+            patientGender = patientGender,
+            reasonForVisit = symptoms.ifBlank { "Homeopathy Consultation" },
+            symptomsDescription = symptoms,
+            appointmentDate = date,
+            timeSlot = timeSlot,
+            status = AppointmentStatus.CONFIRMED,
+            type = type,
+            consultationFee = doctor?.consultationFee ?: 500.0,
+            tokenNumber = assignedToken,
+            notes = "Booked via Web Portal"
+        )
+
+        dao.insertAppointment(newAppt)
+
+        // Generate in-app Admin Notification
+        dao.insertNotification(
+            NotificationEntity(
+                recipientRole = UserRole.ADMIN,
+                recipientId = "ADMIN",
+                title = "Web Appointment Booked",
+                message = "$patientName booked $timeSlot on $date via website portal.",
+                type = "NEW_BOOKING"
+            )
+        )
+
+        return Result.success(newAppt)
+    }
 }

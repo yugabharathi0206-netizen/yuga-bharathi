@@ -1,0 +1,11 @@
+# Android Studio & Gradle files to ignore on Vercel
+app/
+gradle/
+.gradle/
+build/
+.build-outputs/
+*.gradle.kts
+gradle.properties
+debug.keystore*
+metadata.json
+clinic-web-app.zip
