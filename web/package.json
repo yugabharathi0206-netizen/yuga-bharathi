@@ -1,12 +1,13 @@
 {
-  "name": "homeo-clinic-pro-web",
+  "name": "homeo-ai-classical-clinic",
   "version": "1.0.0",
-  "description": "Public Web Booking Portal for HOMEo Clinic Pro",
+  "description": "Public Web Booking Portal for HOMEo AI Classical Clinic",
   "main": "index.html",
   "scripts": {
+    "build": "echo 'Build OK'",
     "start": "npx serve ."
   },
   "keywords": ["clinic", "booking", "homeopathy", "appointment"],
-  "author": "Dr. Yuga Bharathi",
+  "author": "Dr. Balaji",
   "license": "MIT"
 }

@@ -16,7 +16,8 @@ const CLINIC_INFO = {
 const STORAGE_KEYS = {
   APPOINTMENTS: "homeo_clinic_appointments",
   ADMIN_PIN: "homeo_clinic_admin_pin",
-  ADMIN_SESSION: "homeo_clinic_admin_logged_in"
+  ADMIN_SESSION: "homeo_clinic_admin_logged_in",
+  PROFILE: "homeo_clinic_profile"
 };
 
 // Default Sample Seed Data if first time opening
@@ -65,6 +66,7 @@ let currentBooking = null;
 // ================= INITIALIZATION =================
 if (typeof document !== "undefined") {
   document.addEventListener("DOMContentLoaded", () => {
+    loadClinicProfile();
     initDateLimits();
     checkAdminSession();
 
@@ -554,13 +556,179 @@ function exportAppointmentsCSV() {
   document.body.removeChild(link);
 }
 
-// Node.js / Vercel Serverless Function fallback
-// Prevents FUNCTION_INVOCATION_FAILED if Vercel ever executes app.js as a serverless function
-if (typeof module !== "undefined" && module.exports) {
-  module.exports = (req, res) => {
-    if (res && typeof res.writeHead === "function") {
-      res.writeHead(302, { Location: "/" });
-      res.end();
+// ================= DOCTOR PROFILE & PICTURE CUSTOMIZATION =================
+let uploadedDoctorPhotoBase64 = null;
+
+function loadClinicProfile() {
+  try {
+    if (typeof localStorage === "undefined") return;
+    const raw = localStorage.getItem(STORAGE_KEYS.PROFILE);
+    if (raw) {
+      const data = JSON.parse(raw);
+      if (data.doctor) CLINIC_INFO.doctor = data.doctor;
+      if (data.qualification) CLINIC_INFO.qualification = data.qualification;
+      if (data.phone) {
+        CLINIC_INFO.phone = data.phone;
+        CLINIC_INFO.cleanPhone = data.phone.replace(/\D/g, "");
+      }
+      if (data.fee) CLINIC_INFO.fee = Number(data.fee);
+      if (data.speciality) CLINIC_INFO.speciality = data.speciality;
+      if (data.photo) CLINIC_INFO.photo = data.photo;
     }
+  } catch (e) {
+    console.warn("Profile load error", e);
+  }
+  applyClinicProfileToDOM();
+}
+
+function applyClinicProfileToDOM() {
+  // Update Doctor Name across website
+  document.querySelectorAll(".doc-name").forEach(el => el.textContent = CLINIC_INFO.doctor);
+  const docH2 = document.querySelector("#doctor h2");
+  if (docH2) docH2.textContent = CLINIC_INFO.doctor;
+
+  // Update Qualification & Speciality
+  const qualP = document.querySelector(".doc-qualification");
+  if (qualP) qualP.textContent = `${CLINIC_INFO.qualification} • ${CLINIC_INFO.speciality || "Classical Constitutional Homeopathy"}`;
+
+  // Update Doctor Photos
+  if (CLINIC_INFO.photo) {
+    document.querySelectorAll("img[alt*='Dr.'], img[alt*='Doctor'], .doc-avatar img").forEach(img => {
+      img.src = CLINIC_INFO.photo;
+    });
+    const preview = document.getElementById("editDoctorPicPreview");
+    if (preview) preview.src = CLINIC_INFO.photo;
+  }
+
+  // Update Consultation Fee
+  document.querySelectorAll(".fee-amount").forEach(el => el.textContent = `₹${CLINIC_INFO.fee}`);
+
+  // Update Phone numbers & links
+  const phoneVal = CLINIC_INFO.phone || "+91 9876543210";
+  const heroCall = document.getElementById("heroCallClinicBtn");
+  if (heroCall) {
+    heroCall.href = `tel:${phoneVal}`;
+    heroCall.innerHTML = `<i class="fa-solid fa-phone-volume"></i> Call Clinic (${phoneVal})`;
+  }
+  const confirmPhoneLink = document.getElementById("confirmClinicPhoneLink");
+  if (confirmPhoneLink) {
+    confirmPhoneLink.href = `tel:${phoneVal}`;
+    confirmPhoneLink.textContent = phoneVal;
+  }
+  const confirmCallBtn = document.getElementById("confirmCallBtn");
+  if (confirmCallBtn) {
+    confirmCallBtn.href = `tel:${phoneVal}`;
+  }
+
+  // Pre-fill inputs inside Doctor Admin Modal
+  const nameInp = document.getElementById("editDoctorName");
+  if (nameInp) nameInp.value = CLINIC_INFO.doctor;
+  const qualInp = document.getElementById("editDoctorQual");
+  if (qualInp) qualInp.value = CLINIC_INFO.qualification;
+  const feeInp = document.getElementById("editDoctorFee");
+  if (feeInp) feeInp.value = CLINIC_INFO.fee;
+  const phoneInp = document.getElementById("editDoctorPhone");
+  if (phoneInp) phoneInp.value = CLINIC_INFO.phone;
+  const specInp = document.getElementById("editDoctorSpec");
+  if (specInp) specInp.value = CLINIC_INFO.speciality || "Classical Constitutional Homeopathy";
+}
+
+function switchAdminTab(tabName) {
+  const apptsTab = document.getElementById("adminApptsTabContent");
+  const profileTab = document.getElementById("adminProfileTabContent");
+  const apptsBtn = document.getElementById("adminTabApptsBtn");
+  const profileBtn = document.getElementById("adminTabProfileBtn");
+
+  if (tabName === "profile") {
+    if (apptsTab) apptsTab.style.display = "none";
+    if (profileTab) profileTab.style.display = "block";
+    if (apptsBtn) {
+      apptsBtn.style.borderBottom = "none";
+      apptsBtn.style.color = "#64748b";
+      apptsBtn.style.fontWeight = "600";
+    }
+    if (profileBtn) {
+      profileBtn.style.borderBottom = "3px solid #0d9488";
+      profileBtn.style.color = "#0d9488";
+      profileBtn.style.fontWeight = "700";
+    }
+    applyClinicProfileToDOM();
+  } else {
+    if (apptsTab) apptsTab.style.display = "block";
+    if (profileTab) profileTab.style.display = "none";
+    if (apptsBtn) {
+      apptsBtn.style.borderBottom = "3px solid #0d9488";
+      apptsBtn.style.color = "#0d9488";
+      apptsBtn.style.fontWeight = "700";
+    }
+    if (profileBtn) {
+      profileBtn.style.borderBottom = "none";
+      profileBtn.style.color = "#64748b";
+      profileBtn.style.fontWeight = "600";
+    }
+  }
+}
+
+function previewDoctorPhoto(input) {
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      uploadedDoctorPhotoBase64 = e.target.result;
+      const preview = document.getElementById("editDoctorPicPreview");
+      if (preview) preview.src = uploadedDoctorPhotoBase64;
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+
+function previewDoctorPhotoUrl(url) {
+  if (url && url.trim()) {
+    uploadedDoctorPhotoBase64 = url.trim();
+    const preview = document.getElementById("editDoctorPicPreview");
+    if (preview) preview.src = uploadedDoctorPhotoBase64;
+  }
+}
+
+function saveClinicProfile() {
+  const docName = document.getElementById("editDoctorName").value.trim() || "Dr. Balaji";
+  const docQual = document.getElementById("editDoctorQual").value.trim() || "BHMS, MD (Homeopathy)";
+  const docFee = document.getElementById("editDoctorFee").value.trim() || "500";
+  const docPhone = document.getElementById("editDoctorPhone").value.trim() || "+919876543210";
+  const docSpec = document.getElementById("editDoctorSpec").value.trim() || "Classical Constitutional Homeopathy";
+
+  const profileData = {
+    doctor: docName,
+    qualification: docQual,
+    fee: docFee,
+    phone: docPhone,
+    speciality: docSpec,
+    photo: uploadedDoctorPhotoBase64 || CLINIC_INFO.photo || "doctor_portrait.jpg"
   };
+
+  try {
+    localStorage.setItem(STORAGE_KEYS.PROFILE, JSON.stringify(profileData));
+  } catch (e) {
+    console.error("Save profile error", e);
+  }
+
+  CLINIC_INFO.doctor = docName;
+  CLINIC_INFO.qualification = docQual;
+  CLINIC_INFO.fee = Number(docFee);
+  CLINIC_INFO.phone = docPhone;
+  CLINIC_INFO.cleanPhone = docPhone.replace(/\D/g, "");
+  CLINIC_INFO.speciality = docSpec;
+  if (profileData.photo) CLINIC_INFO.photo = profileData.photo;
+
+  applyClinicProfileToDOM();
+
+  const msg = document.getElementById("profileSaveMsg");
+  if (msg) {
+    msg.style.display = "block";
+    setTimeout(() => { msg.style.display = "none"; }, 3500);
+  }
+}
+
+// Clean CommonJS Export (No 302 redirects)
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = { CLINIC_INFO };
 }
