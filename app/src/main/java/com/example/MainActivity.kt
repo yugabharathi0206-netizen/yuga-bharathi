@@ -65,6 +65,9 @@ class MainActivity : ComponentActivity() {
             AppDatabase.populateInitialData(database.clinicDao())
         }
 
+        // Start Real-Time Cloud Sync (Firebase Firestore)
+        repository.startFirestoreRealtimeSync(this, CoroutineScope(Dispatchers.IO))
+
         // Handle incoming web booking deep link
         handleWebBookingIntent(intent)
 

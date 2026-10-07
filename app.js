@@ -177,9 +177,9 @@ function handleBookingSubmit(event) {
   const symptomsInput = document.getElementById("symptoms");
   const consultTypeInput = document.querySelector('input[name="consultationType"]:checked');
 
-  const patientName = nameInput.value.trim();
-  const patientPhone = phoneInput.value.trim();
-  const patientAge = ageInput.value.trim();
+  const rawPhone = phoneInput.value.replace(/\D/g, "");
+  const patientPhone = rawPhone.length >= 10 ? rawPhone.slice(-10) : rawPhone;
+  const patientAge = ageInput.value.trim() || "30";
   const patientGender = genderInput.value;
   const date = dateInput.value;
   const timeSlot = timeInput.value;
@@ -192,7 +192,7 @@ function handleBookingSubmit(event) {
     nameInput.focus();
     return;
   }
-  if (!/^\d{10}$/.test(patientPhone)) {
+  if (patientPhone.length !== 10) {
     alert("Please enter a valid 10-digit mobile number.");
     phoneInput.focus();
     return;
@@ -272,8 +272,6 @@ function openBookingInAndroidApp() {
   
   const isAndroid = /Android/i.test(navigator.userAgent);
   if (isAndroid) {
-    // If Android app is installed, open app directly & pass booking
-    // If not installed, Chrome automatically redirects to APP_CLOUD_URL without breaking
     const intentUri = `intent://appointment?${query}#Intent;scheme=homeoclinic;package=${ANDROID_PACKAGE};S.browser_fallback_url=${encodeURIComponent(APP_CLOUD_URL)};end`;
     window.location.href = intentUri;
     setTimeout(() => {
@@ -288,11 +286,22 @@ function openBookingInAndroidApp() {
 // ================= CONFIRMATION MODAL =================
 function showConfirmation(appt) {
   document.getElementById("confirmApptId").textContent = appt.id;
+  const smallId = document.getElementById("confirmApptIdSmall");
+  if (smallId) smallId.textContent = appt.id;
   document.getElementById("confirmPatientName").textContent = appt.patientName;
   document.getElementById("confirmPatientPhone").textContent = appt.patientPhone;
   document.getElementById("confirmDateTime").textContent = `${appt.date} at ${appt.timeSlot}`;
   document.getElementById("confirmMode").textContent =
     appt.consultationType === "IN_CLINIC" ? "In-Clinic Visit (Chennai)" : "Online Video Consultation";
+
+  // Dynamic Deep Link for QR Code & direct App Import
+  const query = `id=${encodeURIComponent(appt.id)}&name=${encodeURIComponent(appt.patientName)}&phone=${encodeURIComponent(appt.patientPhone)}&age=${encodeURIComponent(appt.patientAge || 30)}&gender=${encodeURIComponent(appt.patientGender || "Male")}&date=${encodeURIComponent(appt.date)}&time=${encodeURIComponent(appt.timeSlot)}&mode=${encodeURIComponent(appt.consultationType)}&symptoms=${encodeURIComponent(appt.symptoms || "")}`;
+  const deepLink = `homeoclinic://appointment?${query}`;
+
+  const qrImg = document.getElementById("confirmApptQr");
+  if (qrImg) {
+    qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(deepLink)}`;
+  }
 
   const modal = document.getElementById("confirmationModal");
   if (modal) {
@@ -311,14 +320,18 @@ function closeConfirmationModal() {
 
 function sendWhatsAppConfirmation() {
   if (!currentBooking) return;
-  const msg = `*HOMEo Clinic Pro - Appointment Ticket*%0A%0A` +
-    `*Patient Name:* ${encodeURIComponent(currentBooking.patientName)}%0A` +
-    `*Booking ID:* ${encodeURIComponent(currentBooking.id)}%0A` +
-    `*Appointment Date:* ${encodeURIComponent(currentBooking.date)}%0A` +
-    `*Appointment Time:* ${encodeURIComponent(currentBooking.timeSlot)}%0A` +
+  const query = `id=${encodeURIComponent(currentBooking.id)}&name=${encodeURIComponent(currentBooking.patientName)}&phone=${encodeURIComponent(currentBooking.patientPhone)}&age=${encodeURIComponent(currentBooking.patientAge || 30)}&gender=${encodeURIComponent(currentBooking.patientGender || "Male")}&date=${encodeURIComponent(currentBooking.date)}&time=${encodeURIComponent(currentBooking.timeSlot)}&mode=${encodeURIComponent(currentBooking.consultationType)}&symptoms=${encodeURIComponent(currentBooking.symptoms || "")}`;
+  const deepLink = `homeoclinic://appointment?${query}`;
+
+  const msg = `*HOMEo AI Classical Clinic - Appointment Ticket*%0A%0A` +
     `*Doctor Name:* Dr. Balaji, BHMS, MD (Homeopathy)%0A` +
-    `*Consultation Type:* ${currentBooking.consultationType === "IN_CLINIC" ? "In-Clinic Visit (Chennai)" : "Online Video Consultation"}%0A` +
-    `*Patient Phone:* ${encodeURIComponent(currentBooking.patientPhone)}%0A%0A` +
+    `*Patient Name:* ${encodeURIComponent(currentBooking.patientName)}%0A` +
+    `*Token ID:* ${encodeURIComponent(currentBooking.id)}%0A` +
+    `*Date:* ${encodeURIComponent(currentBooking.date)}%0A` +
+    `*Slot:* ${encodeURIComponent(currentBooking.timeSlot)}%0A` +
+    `*Mode:* ${currentBooking.consultationType === "IN_CLINIC" ? "In-Clinic Visit (Chennai)" : "Online Video Consultation"}%0A` +
+    `*Fee:* ₹500%0A%0A` +
+    `*📲 Open in HOMEo AI App:*%0A${encodeURIComponent(deepLink)}%0A%0A` +
     `_Please confirm my consultation. Thank you!_`;
 
   window.open(`https://wa.me/${CLINIC_INFO.cleanPhone}?text=${msg}`, "_blank");
@@ -438,18 +451,23 @@ function filterAdminAppointments() {
       </div>
       <div class="admin-appt-actions">
         ${a.status === "PENDING" ? `
-          <button class="btn btn-primary btn-sm" onclick="updateAppointmentStatus('${a.id}', 'CONFIRMED')">
-            <i class="fa-solid fa-check"></i> Accept
+          <button class="btn btn-primary btn-sm" style="background:#059669; border-color:#059669; font-weight:700;" onclick="confirmAndNotifyPatient('${a.id}')">
+            <i class="fa-solid fa-check-double"></i> ✓ Confirm & WhatsApp Patient
           </button>
         ` : ""}
-        ${a.status !== "COMPLETED" ? `
+        ${a.status === "CONFIRMED" ? `
+          <button class="btn btn-outline btn-sm" onclick="confirmAndNotifyPatient('${a.id}')" title="Resend WhatsApp Confirmation">
+            <i class="fa-brands fa-whatsapp"></i> Resend WhatsApp
+          </button>
+        ` : ""}
+        ${a.status !== "COMPLETED" && a.status === "CONFIRMED" ? `
           <button class="btn btn-outline btn-sm" onclick="updateAppointmentStatus('${a.id}', 'COMPLETED')">
-            <i class="fa-solid fa-circle-check"></i> Complete
+            <i class="fa-solid fa-circle-check"></i> Mark Consulted
           </button>
         ` : ""}
         ${a.status !== "CANCELLED" ? `
           <button class="btn btn-secondary btn-sm" style="color:#dc2626;" onclick="updateAppointmentStatus('${a.id}', 'CANCELLED')">
-            <i class="fa-solid fa-ban"></i> Cancel
+            <i class="fa-solid fa-ban"></i> Reject / Cancel
           </button>
         ` : ""}
         <a href="https://wa.me/91${a.patientPhone}?text=Hello%20${encodeURIComponent(a.patientName)},%20this%20is%20Dr.%20Balaji%20from%20HOMEo%20AI%20Classical%20Clinic%20regarding%20your%20appointment%20${a.id}." target="_blank" class="btn btn-whatsapp btn-sm">
@@ -458,6 +476,29 @@ function filterAdminAppointments() {
       </div>
     </div>
   `).join("");
+}
+
+function confirmAndNotifyPatient(id) {
+  const appointments = getStoredAppointments();
+  const target = appointments.find(a => a.id === id);
+  if (target) {
+    target.status = "CONFIRMED";
+    saveAppointments(appointments);
+    renderAdminAppointments();
+
+    const msg = `*HOMEo AI Classical Clinic - Appointment Confirmed!*%0A%0A` +
+      `Dear *${encodeURIComponent(target.patientName)}*,%0A` +
+      `Your appointment with *Dr. Balaji, BHMS, MD (Homeopathy)* is *APPROVED & CONFIRMED*!%0A%0A` +
+      `*Token ID:* ${encodeURIComponent(target.id)}%0A` +
+      `*Date:* ${encodeURIComponent(target.date)}%0A` +
+      `*Time Slot:* ${encodeURIComponent(target.timeSlot)}%0A` +
+      `*Mode:* ${target.consultationType === "IN_CLINIC" ? "In-Clinic Visit (Chennai)" : "Online Video Consultation"}%0A` +
+      `*Fee:* ₹500%0A%0A` +
+      `*Address:* 74 Gandhi Road, Health Complex, Chennai%0A` +
+      `_Looking forward to your consultation. Thank you!_`;
+
+    window.open(`https://wa.me/91${target.patientPhone}?text=${msg}`, "_blank");
+  }
 }
 
 function updateAppointmentStatus(id, newStatus) {

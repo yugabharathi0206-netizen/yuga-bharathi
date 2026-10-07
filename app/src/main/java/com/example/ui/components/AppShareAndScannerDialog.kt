@@ -36,6 +36,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 object AppUrlConstants {
+    const val GITHUB_PAGES_URL = "https://yugabharathi0206-netizen.github.io/yuga-bharathi/"
     const val VERCEL_WEB_URL = "https://yuga-bharathi.vercel.app"
     const val SHARED_APP_URL = "https://ais-pre-krh3ojasrp76qf4324mwph-653917990697.asia-southeast1.run.app"
     const val DEV_APP_URL = "https://ais-dev-krh3ojasrp76qf4324mwph-653917990697.asia-southeast1.run.app"
@@ -65,10 +66,11 @@ fun AppShareAndScannerDialog(
     }
     
     val activeUrl = when (selectedUrlType) {
-        0 -> AppUrlConstants.VERCEL_WEB_URL
-        1 -> AppUrlConstants.SHARED_APP_URL
-        2 -> AppUrlConstants.DEV_APP_URL
-        else -> customUrlInput.ifBlank { AppUrlConstants.VERCEL_WEB_URL }
+        0 -> AppUrlConstants.GITHUB_PAGES_URL
+        1 -> AppUrlConstants.VERCEL_WEB_URL
+        2 -> AppUrlConstants.SHARED_APP_URL
+        3 -> AppUrlConstants.DEV_APP_URL
+        else -> customUrlInput.ifBlank { AppUrlConstants.GITHUB_PAGES_URL }
     }
 
     val allApts by repository.allAppointments.collectAsStateWithLifecycle(initialValue = emptyList())

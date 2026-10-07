@@ -5,6 +5,7 @@ import com.example.data.model.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -951,7 +952,8 @@ class ClinicRepository(private val dao: ClinicDao) {
         date: String,
         timeSlot: String,
         consultationType: String,
-        symptoms: String
+        symptoms: String,
+        initialStatus: AppointmentStatus = AppointmentStatus.PENDING
     ): Result<AppointmentEntity> {
         val existing = dao.getAppointmentById(id)
         if (existing != null) {
@@ -960,7 +962,7 @@ class ClinicRepository(private val dao: ClinicDao) {
 
         val doctor = dao.getFirstDoctor()
         val doctorId = doctor?.id ?: "doc_main"
-        val doctorName = doctor?.name ?: "Dr. Yuga Bharathi"
+        val doctorName = doctor?.name ?: "Dr. Balaji"
 
         // Find or create patient record
         var patient = dao.getPatientByPhone(patientPhone)
@@ -999,7 +1001,7 @@ class ClinicRepository(private val dao: ClinicDao) {
             symptomsDescription = symptoms,
             appointmentDate = date,
             timeSlot = timeSlot,
-            status = AppointmentStatus.CONFIRMED,
+            status = initialStatus,
             type = type,
             consultationFee = doctor?.consultationFee ?: 500.0,
             tokenNumber = assignedToken,
@@ -1013,12 +1015,74 @@ class ClinicRepository(private val dao: ClinicDao) {
             NotificationEntity(
                 recipientRole = UserRole.ADMIN,
                 recipientId = "ADMIN",
-                title = "Web Appointment Booked",
-                message = "$patientName booked $timeSlot on $date via website portal.",
+                title = "New Web Booking: $patientName",
+                message = "$patientName booked $timeSlot on $date. Needs Confirmation.",
                 type = "NEW_BOOKING"
             )
         )
 
         return Result.success(newAppt)
+    }
+
+    // Real-Time Firebase Firestore Cloud Sync for Web Bookings
+    fun startFirestoreRealtimeSync(context: android.content.Context, scope: kotlinx.coroutines.CoroutineScope) {
+        try {
+            val dbId = context.getString(com.example.R.string.firestore_database_id)
+            val firestore = com.google.firebase.firestore.FirebaseFirestore.getInstance(dbId)
+            firestore.collection("appointments")
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        android.util.Log.w("FirestoreSync", "Live sync notice: ${error.message}")
+                        return@addSnapshotListener
+                    }
+                    if (snapshot != null && !snapshot.isEmpty) {
+                        scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                            for (doc in snapshot.documents) {
+                                val id = doc.getString("id") ?: doc.id
+                                val name = doc.getString("patientName") ?: continue
+                                val phone = doc.getString("patientPhone") ?: ""
+                                val age = doc.getString("patientAge")?.toIntOrNull() ?: 30
+                                val gender = doc.getString("patientGender") ?: "Male"
+                                val date = doc.getString("date") ?: SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+                                val time = doc.getString("timeSlot") ?: "10:00 AM"
+                                val mode = doc.getString("consultationType") ?: "IN_CLINIC"
+                                val symptoms = doc.getString("symptoms") ?: "Web Booking"
+                                val statusStr = doc.getString("status") ?: "PENDING"
+
+                                val existing = dao.getAppointmentById(id)
+                                if (existing == null) {
+                                    importWebBooking(
+                                        id = id,
+                                        patientName = name,
+                                        patientPhone = phone,
+                                        patientAge = age,
+                                        patientGender = gender,
+                                        date = date,
+                                        timeSlot = time,
+                                        consultationType = mode,
+                                        symptoms = symptoms,
+                                        initialStatus = if (statusStr.equals("CONFIRMED", ignoreCase = true)) AppointmentStatus.CONFIRMED else AppointmentStatus.PENDING
+                                    )
+                                } else if (statusStr.equals("CONFIRMED", ignoreCase = true) && existing.status != AppointmentStatus.CONFIRMED) {
+                                    dao.updateAppointment(existing.copy(status = AppointmentStatus.CONFIRMED))
+                                }
+                            }
+                        }
+                    }
+                }
+        } catch (e: Exception) {
+            android.util.Log.e("FirestoreSync", "Failed to start Firestore sync", e)
+        }
+    }
+
+    suspend fun syncAppointmentConfirmationToCloud(context: android.content.Context, appointmentId: String) {
+        try {
+            val dbId = context.getString(com.example.R.string.firestore_database_id)
+            val firestore = com.google.firebase.firestore.FirebaseFirestore.getInstance(dbId)
+            firestore.collection("appointments").document(appointmentId)
+                .update("status", "CONFIRMED")
+        } catch (e: Exception) {
+            android.util.Log.w("FirestoreSync", "Cloud status update notice: ${e.message}")
+        }
     }
 }

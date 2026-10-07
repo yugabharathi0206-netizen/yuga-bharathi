@@ -1,0 +1,33 @@
+{
+  "entities": {
+    "Appointment": {
+      "title": "Appointment",
+      "description": "Clinic consultation appointment booking",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique appointment identifier" },
+        "patientName": { "type": "string", "description": "Full name of the patient" },
+        "patientPhone": { "type": "string", "description": "Patient mobile number" },
+        "patientAge": { "type": "string", "description": "Age of the patient" },
+        "patientGender": { "type": "string", "description": "Gender of the patient" },
+        "consultationType": { "type": "string", "description": "IN_CLINIC or ONLINE" },
+        "date": { "type": "string", "description": "Appointment date (YYYY-MM-DD)" },
+        "timeSlot": { "type": "string", "description": "Selected consultation time slot" },
+        "symptoms": { "type": "string", "description": "Reported symptoms or health concern" },
+        "status": {
+          "type": "string",
+          "enum": ["PENDING", "CONFIRMED", "COMPLETED", "CANCELLED"],
+          "description": "Booking workflow state"
+        },
+        "createdAt": { "type": "string", "description": "Timestamp string" }
+      },
+      "required": ["id", "patientName", "patientPhone", "date", "timeSlot", "status"]
+    }
+  },
+  "firestore": {
+    "/appointments/{appointmentId}": {
+      "schema": "#/entities/Appointment",
+      "description": "Public patient bookings synced live with the clinic doctor dashboard"
+    }
+  }
+}

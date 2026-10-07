@@ -321,6 +321,16 @@ fun ClinicAppointmentActionCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 when (appointment.status) {
+                    AppointmentStatus.PENDING -> {
+                        Button(
+                            onClick = onCheckIn,
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(containerColor = HealingGreen)
+                        ) {
+                            Text("Confirm Booking", fontSize = 12.sp)
+                        }
+                    }
                     AppointmentStatus.CONFIRMED -> {
                         Button(
                             onClick = onCheckIn,

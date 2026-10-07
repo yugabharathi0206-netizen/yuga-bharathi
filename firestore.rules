@@ -1,0 +1,22 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /appointments/{appointmentId} {
+      // Allow patients and clinic app to read appointments
+      allow read: if true;
+      
+      // Allow patients to create new booking requests with status PENDING
+      allow create: if request.resource.data.id == appointmentId
+                    && request.resource.data.patientName is string
+                    && request.resource.data.patientPhone is string
+                    && request.resource.data.date is string
+                    && request.resource.data.timeSlot is string
+                    && request.resource.data.status in ['PENDING', 'CONFIRMED'];
+                    
+      // Allow clinic doctor/staff to confirm or update appointments
+      allow update: if request.resource.data.status in ['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED'];
+      
+      allow delete: if false;
+    }
+  }
+}

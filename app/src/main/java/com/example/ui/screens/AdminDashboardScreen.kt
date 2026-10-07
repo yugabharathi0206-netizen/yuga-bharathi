@@ -279,6 +279,7 @@ fun AdminDashboardScreen(
                         onConfirm = { apt ->
                             scope.launch {
                                 repository.confirmAppointmentByAdmin(apt.id)
+                                repository.syncAppointmentConfirmationToCloud(context, apt.id)
                                 Toast.makeText(context, "Confirmed #${apt.id}", Toast.LENGTH_SHORT).show()
                             }
                         },
