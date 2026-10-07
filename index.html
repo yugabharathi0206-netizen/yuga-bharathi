@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>HOMEo Clinic Pro | Online Appointment Booking</title>
-  <meta name="description" content="Book in-clinic and online homeopathy consultations with Dr. Yuga Bharathi at HOMEo Clinic Pro. Safe, holistic, and natural healing.">
+  <title>HOMEo AI Classical Clinic | Public Clinic Portal</title>
+  <meta name="description" content="Book in-clinic and online homeopathy consultations with Dr. Balaji (BHMS, MD Homeopathy) at HOMEo AI Classical Clinic. Your health, our care.">
   <meta name="theme-color" content="#0d9488">
   
   <!-- Google Fonts -->
@@ -35,12 +35,10 @@
   <header class="navbar">
     <div class="container nav-container">
       <div class="brand">
-        <div class="brand-logo">
-          <i class="fa-solid fa-seedling"></i>
-        </div>
+        <img src="homeo_app_icon.jpg" alt="HOMEo AI Logo" style="width:42px; height:42px; border-radius:12px; object-fit:cover; box-shadow:0 4px 12px rgba(13,148,136,0.25);">
         <div class="brand-text">
-          <span class="brand-title">HOMEo Clinic <span class="badge-pro">PRO</span></span>
-          <span class="brand-subtitle">Natural &amp; Holistic Healthcare</span>
+          <span class="brand-title">HOMEo AI <span class="badge-pro" style="background:#0d9488;">CLINIC</span></span>
+          <span class="brand-subtitle">Your health, our care.</span>
         </div>
       </div>
 
@@ -142,12 +140,12 @@
       <div class="hero-card-wrapper">
         <div class="clinic-highlight-card">
           <div class="doctor-badge">
-            <div class="doc-avatar">
-              <i class="fa-solid fa-user-doctor"></i>
+            <div class="doc-avatar" style="overflow:hidden; border:2px solid #0d9488;">
+              <img src="doctor_portrait.jpg" alt="Dr. Balaji" style="width:100%; height:100%; object-fit:cover;">
             </div>
             <div>
-              <h3 class="doc-name">Dr. Yuga Bharathi</h3>
-              <p class="doc-spec">B.H.M.S, M.D (Homeopathy)</p>
+              <h3 class="doc-name">Dr. Balaji</h3>
+              <p class="doc-spec">BHMS, MD (Homeopathy) • Classical Homeopath</p>
               <div class="rating-stars">
                 <i class="fa-solid fa-star"></i>
                 <i class="fa-solid fa-star"></i>
@@ -234,22 +232,25 @@
   <!-- Doctor Profile Section -->
   <section id="doctor" class="section doctor-section">
     <div class="container doc-container">
-      <div class="doc-card-large">
-        <div class="doc-info-col">
+      <div class="doc-card-large" style="display:flex; gap:32px; align-items:center; flex-wrap:wrap;">
+        <div style="flex:0 0 240px; text-align:center;">
+          <img src="doctor_portrait.jpg" alt="Dr. Balaji" style="width:220px; height:250px; object-fit:cover; border-radius:18px; box-shadow:0 12px 28px rgba(0,0,0,0.15); border:3px solid #0d9488;">
+        </div>
+        <div class="doc-info-col" style="flex:1; min-width:280px;">
           <span class="section-tag">Chief Homeopathic Physician</span>
-          <h2>Dr. Yuga Bharathi</h2>
-          <p class="doc-qualification">B.H.M.S, M.D (Classical Homeopathy) | Reg No: HOM-48921</p>
+          <h2>Dr. Balaji</h2>
+          <p class="doc-qualification">BHMS, MD (Homeopathy) • Classical Constitutional Homeopathy</p>
           <p class="doc-bio">
-            Dr. Yuga Bharathi has over 15 years of dedicated clinical practice in classical constitutional homeopathy. Renowned for detailed individualized case-taking and personalized holistic recovery plans, Dr. Bharathi has successfully treated thousands of chronic and complex lifestyle disorders.
+            Dr. Balaji specializes in individualized Classical Constitutional Homeopathy, combining deep homeopathic repertorisation with gentle holistic remedies to treat root causes without side effects.
           </p>
           <div class="doc-highlights">
-            <div class="highlight-item"><i class="fa-solid fa-check-circle"></i> Certified by Central Council of Homeopathy</div>
-            <div class="highlight-item"><i class="fa-solid fa-check-circle"></i> 100% German &amp; Swiss Grade Medicines</div>
-            <div class="highlight-item"><i class="fa-solid fa-check-circle"></i> Safe for Infants, Pregnant Women &amp; Seniors</div>
+            <div class="highlight-item"><i class="fa-solid fa-check-circle"></i> BHMS, MD (Homeopathy) Certified</div>
+            <div class="highlight-item"><i class="fa-solid fa-check-circle"></i> Classical Constitutional Homeopathy</div>
+            <div class="highlight-item"><i class="fa-solid fa-check-circle"></i> Consultation Fee: ₹500 • Safe &amp; Individualized Care</div>
           </div>
-          <div class="doc-cta">
+          <div class="doc-cta" style="margin-top:20px;">
             <button class="btn btn-primary" onclick="openBookingModal()">
-              <i class="fa-solid fa-calendar-check"></i> Book Consultation (₹500)
+              <i class="fa-solid fa-calendar-check"></i> Book Consultation with Dr. Balaji (₹500)
             </button>
           </div>
         </div>
@@ -500,7 +501,7 @@
         <div class="ticket-details">
           <div class="ticket-row">
             <span>Doctor:</span>
-            <strong>Dr. Yuga Bharathi (M.D Homeo)</strong>
+            <strong>Dr. Balaji, BHMS, MD (Homeopathy)</strong>
           </div>
           <div class="ticket-row">
             <span>Patient Name:</span>
@@ -622,7 +623,7 @@
   <!-- Floating Book Button for Mobile -->
   <div class="floating-booking-bar">
     <div class="floating-info">
-      <strong>Dr. Yuga Bharathi</strong>
+      <strong>Dr. Balaji (BHMS, MD Homeopathy)</strong>
       <span>In-Clinic &amp; Video Consultations</span>
     </div>
     <button class="btn btn-primary" onclick="openBookingModal()">

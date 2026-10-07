@@ -4,9 +4,9 @@
 
 // Clinic Configuration
 const CLINIC_INFO = {
-  name: "HOMEo Clinic Pro",
-  doctor: "Dr. Yuga Bharathi",
-  qualification: "B.H.M.S, M.D (Homeopathy)",
+  name: "HOMEo AI Classical Clinic",
+  doctor: "Dr. Balaji",
+  qualification: "BHMS, MD (Homeopathy)",
   phone: "+919876543210",
   cleanPhone: "919876543210",
   fee: 500
@@ -316,7 +316,7 @@ function sendWhatsAppConfirmation() {
     `*Booking ID:* ${encodeURIComponent(currentBooking.id)}%0A` +
     `*Appointment Date:* ${encodeURIComponent(currentBooking.date)}%0A` +
     `*Appointment Time:* ${encodeURIComponent(currentBooking.timeSlot)}%0A` +
-    `*Doctor Name:* Dr. Yuga Bharathi, B.H.M.S%0A` +
+    `*Doctor Name:* Dr. Balaji, BHMS, MD (Homeopathy)%0A` +
     `*Consultation Type:* ${currentBooking.consultationType === "IN_CLINIC" ? "In-Clinic Visit (Chennai)" : "Online Video Consultation"}%0A` +
     `*Patient Phone:* ${encodeURIComponent(currentBooking.patientPhone)}%0A%0A` +
     `_Please confirm my consultation. Thank you!_`;
@@ -452,7 +452,7 @@ function filterAdminAppointments() {
             <i class="fa-solid fa-ban"></i> Cancel
           </button>
         ` : ""}
-        <a href="https://wa.me/91${a.patientPhone}?text=Hello%20${encodeURIComponent(a.patientName)},%20this%20is%20Dr.%20Yuga%20Bharathi%20from%20HOMEo%20Clinic%20regarding%20your%20appointment%20${a.id}." target="_blank" class="btn btn-whatsapp btn-sm">
+        <a href="https://wa.me/91${a.patientPhone}?text=Hello%20${encodeURIComponent(a.patientName)},%20this%20is%20Dr.%20Balaji%20from%20HOMEo%20AI%20Classical%20Clinic%20regarding%20your%20appointment%20${a.id}." target="_blank" class="btn btn-whatsapp btn-sm">
           <i class="fa-brands fa-whatsapp"></i> Chat
         </a>
       </div>
