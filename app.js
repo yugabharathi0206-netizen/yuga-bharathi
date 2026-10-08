@@ -5,7 +5,7 @@
 
 // Master Clinic Default Data
 const DEFAULT_CLINIC_DATA = {
-  clinicName: "SP Clinic",
+  clinicName: "Dr. Balaji Homeo Care",
   clinicSubtitle: "HOMEo AI Classical Clinic • Your health, our care.",
   doctorName: "Dr. Balaji",
   doctorQualification: "BHMS, MD (Homeopathy)",
@@ -13,7 +13,7 @@ const DEFAULT_CLINIC_DATA = {
   doctorBio: "Dr. Balaji specializes in individualized Classical Constitutional Homeopathy, combining deep repertorisation with gentle holistic remedies to treat chronic and acute ailments safely with zero side effects.",
   phone: "+91 98765 43210",
   cleanPhone: "919876543210",
-  address: "SP Clinic, 74 Gandhi Road, Near Central Park, Health Complex, Chennai - 600001",
+  address: "Dr. Balaji Homeo Care, 74 Gandhi Road, Near Central Park, Health Complex, Chennai - 600001",
   email: "care@spclinic.com",
   consultingHours: "Morning: 09:00 AM – 01:00 PM | Evening: 05:00 PM – 09:00 PM (Mon - Sat)",
   fee: 500,
@@ -44,9 +44,11 @@ const DEFAULT_CLINIC_DATA = {
 // Storage Keys
 const STORAGE_KEYS = {
   APPOINTMENTS: "homeo_clinic_appointments",
-  OWNER_AUTH: "sp_clinic_owner_auth",       // Salted cryptographic hash of Owner credentials
-  OWNER_SESSION: "sp_clinic_owner_session", // Active owner session token
-  CLINIC_DATA: "sp_clinic_master_data"      // Master clinic settings and profile
+  OWNER_AUTH: "sp_clinic_owner_auth",         // Salted cryptographic hash of Owner credentials
+  OWNER_SESSION: "sp_clinic_owner_session",   // Active owner session token
+  CLINIC_DATA: "sp_clinic_master_data",        // Master clinic settings and profile
+  PATIENT_USERS: "sp_clinic_patient_users",    // Patient accounts (phone + salted password hash)
+  PATIENT_SESSION: "sp_clinic_patient_session" // Active logged-in patient session
 };
 
 // Runtime Clinic State
@@ -148,23 +150,7 @@ function getStoredAppointments() {
     if (typeof localStorage === "undefined") return [];
     const raw = localStorage.getItem(STORAGE_KEYS.APPOINTMENTS);
     if (!raw) {
-      const initialSeed = [
-        {
-          id: "HM-2026-1001",
-          patientName: "Karthik Subramanian",
-          patientPhone: "9876543210",
-          patientAge: "34",
-          patientGender: "Male",
-          consultationType: "IN_CLINIC",
-          date: new Date().toISOString().split("T")[0],
-          timeSlot: "10:30 AM - 11:00 AM",
-          symptoms: "Allergic rhinitis and morning sneezing",
-          status: "CONFIRMED",
-          createdAt: new Date().toISOString()
-        }
-      ];
-      localStorage.setItem(STORAGE_KEYS.APPOINTMENTS, JSON.stringify(initialSeed));
-      return initialSeed;
+      return [];
     }
     return JSON.parse(raw);
   } catch (e) {
@@ -350,7 +336,11 @@ if (typeof document !== "undefined") {
   document.addEventListener("DOMContentLoaded", () => {
     loadClinicData();
     initDateLimits();
+    setupRealtimeFirestoreSync();
     checkAdminRoute();
+    if (window.location.hash === '#patient-portal') {
+      openPatientPortal();
+    }
 
     // Close modals on clicking backdrop
     document.addEventListener("click", (e) => {
@@ -375,8 +365,22 @@ if (typeof document !== "undefined") {
 function checkAdminRoute() {
   const hash = window.location.hash;
   const search = new URLSearchParams(window.location.search);
-  if (hash === "#admin" || search.get("admin") === "true") {
+  const path = window.location.pathname;
+
+  // Admin routes: #admin, /admin, /admin/login, /admin/dashboard
+  if (hash === "#admin" || hash === "#admin/dashboard" || hash === "#admin/login" || search.get("admin") === "true" || path.includes("/admin")) {
     openOwnerPortal();
+    return;
+  }
+
+  // Patient routes: #patient-portal, #patient/dashboard, #login, #signup, etc.
+  if (hash === "#patient-portal" || hash === "#patient/dashboard" || hash === "#patient/book" || hash === "#patient/appointments" || hash === "#patient/profile" || hash === "#login" || hash === "#signup" || path.includes("/patient") || path.includes("/login") || path.includes("/signup")) {
+    openPatientPortal();
+    if (hash === "#signup" || path.includes("/signup")) {
+      switchPatientAuthTab("signup");
+    } else {
+      switchPatientAuthTab("login");
+    }
   }
 }
 
@@ -427,6 +431,15 @@ function openBookingModal() {
     document.body.style.overflow = "hidden";
     renderSlotsInBookingForm();
     loadAvailableSlots();
+
+    // Pre-fill patient details automatically if patient is logged in
+    const patientSession = getActivePatientSession();
+    if (patientSession) {
+      const nameInput = document.getElementById("patientName");
+      const phoneInput = document.getElementById("patientPhone");
+      if (nameInput && !nameInput.value) nameInput.value = patientSession.fullName || "";
+      if (phoneInput && !phoneInput.value) phoneInput.value = patientSession.phone || "";
+    }
   }
 }
 
@@ -445,7 +458,7 @@ function loadAvailableSlots() {
 
   const all = getStoredAppointments();
   const bookedSlots = all
-    .filter(a => a.date === selectedDate && a.status !== "CANCELLED")
+    .filter(a => a.date === selectedDate && a.status !== "CANCELLED" && a.status !== "REJECTED")
     .map(a => a.timeSlot);
 
   Array.from(timeSelect.options).forEach(opt => {
@@ -501,9 +514,15 @@ function handleBookingSubmit(event) {
   const randomNum = Math.floor(1000 + Math.random() * 9000);
   const appointmentId = `HM-2026-${randomNum}`;
 
+  const session = getActivePatientSession();
+  const patientId = (session && session.phone) ? ("USER-" + session.phone) : ("USER-" + patientPhone);
+
   const newAppointment = {
     id: appointmentId,
+    appointmentId,
+    patientId,
     patientName,
+    patientMobile: patientPhone,
     patientPhone,
     patientAge,
     patientGender,
@@ -512,7 +531,8 @@ function handleBookingSubmit(event) {
     timeSlot,
     symptoms: symptoms || "General Homeopathy Consultation",
     status: "PENDING",
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
   };
 
   // Save to appointment store
@@ -530,6 +550,18 @@ function handleBookingSubmit(event) {
   }
 
   currentBooking = newAppointment;
+
+  // Auto-establish patient session for the booked phone number so they can instantly view status & history
+  try {
+    const patientSession = {
+      phone: patientPhone,
+      token: generateSecureSalt(),
+      expiresAt: Date.now() + 24 * 60 * 60 * 1000
+    };
+    sessionStorage.setItem(STORAGE_KEYS.PATIENT_SESSION, JSON.stringify(patientSession));
+  } catch (err) {
+    console.warn('Patient session auto-store error', err);
+  }
 
   // Reset form & close modal
   document.getElementById("bookingForm").reset();
@@ -702,8 +734,8 @@ function updateOwnerPortalUI() {
       modalCard.classList.remove("modal-lg");
       modalCard.classList.add("modal-sm");
     }
-    if (modalTitle) modalTitle.innerHTML = `<i class="fa-solid fa-lock"></i> Owner Login — Enter Password`;
-    if (modalSubtitle) modalSubtitle.textContent = `${CLINIC_DATA.clinicName} Protected Management`;
+    if (modalTitle) modalTitle.innerHTML = `<i class="fa-solid fa-lock"></i> Owner / Admin Login`;
+    if (modalSubtitle) modalSubtitle.textContent = `Private Clinic & Doctor Administration (/admin/login)`;
   } else {
     // 3. Authenticated: show full Owner Dashboard
     if (setupView) setupView.style.display = "none";
@@ -872,7 +904,7 @@ function showAuthError(el, msg) {
 function switchAdminTab(tabName) {
   requireOwnerAuth();
 
-  const tabs = ["appts", "slots", "profile", "clinic", "security"];
+  const tabs = ["appts", "patients", "slots", "profile", "clinic", "security"];
   tabs.forEach(t => {
     const content = document.getElementById(`admin${t.charAt(0).toUpperCase() + t.slice(1)}TabContent`);
     const btn = document.getElementById(`adminTab${t.charAt(0).toUpperCase() + t.slice(1)}Btn`);
@@ -888,6 +920,8 @@ function switchAdminTab(tabName) {
 
   if (tabName === "appts") {
     renderAdminAppointments();
+  } else if (tabName === "patients") {
+    renderAdminPatients();
   } else if (tabName === "slots") {
     renderAdminSlots();
   } else if (tabName === "profile") {
@@ -964,30 +998,34 @@ function filterAdminAppointments() {
         <strong>Symptoms:</strong> ${a.symptoms || "General Checkup"}
       </div>
       <div class="admin-appt-actions" style="flex-wrap:wrap; margin-top:10px;">
-        ${a.status === "PENDING" ? `
+        ${a.status !== "CONFIRMED" ? `
           <button class="btn btn-primary btn-sm" style="background:#059669; border-color:#059669; font-weight:700;" onclick="confirmAndNotifyPatient('${a.id}')">
-            <i class="fa-solid fa-check"></i> Approve &amp; WhatsApp
+            <i class="fa-solid fa-check"></i> CONFIRM
           </button>
-        ` : ""}
-        ${a.status === "CONFIRMED" ? `
+        ` : `
           <button class="btn btn-outline btn-sm" onclick="confirmAndNotifyPatient('${a.id}')" title="Resend WhatsApp Confirmation">
-            <i class="fa-brands fa-whatsapp"></i> WhatsApp Status
+            <i class="fa-brands fa-whatsapp"></i> Confirmed (WhatsApp)
+          </button>
+        `}
+        ${a.status !== "REJECTED" && a.status !== "CANCELLED" ? `
+          <button class="btn btn-secondary btn-sm" style="color:#dc2626; font-weight:700;" onclick="rejectAppointment('${a.id}')">
+            <i class="fa-solid fa-ban"></i> REJECT
           </button>
         ` : ""}
+        <button class="btn btn-outline btn-sm" style="color:#d97706; font-weight:700;" onclick="openRescheduleModal('${a.id}')">
+          <i class="fa-solid fa-calendar-days"></i> RESCHEDULE
+        </button>
+        <button class="btn btn-outline btn-sm" style="color:#0284c7; font-weight:700;" onclick="switchAdminTab('patients'); document.getElementById('adminPatientSearchInput').value = '${a.patientPhone}'; renderAdminPatients();">
+          <i class="fa-solid fa-user"></i> VIEW PATIENT
+        </button>
         <select onchange="changeAppointmentStatusFromSelect('${a.id}', this.value)" class="form-control form-control-sm" style="width:auto; display:inline-block; font-size:12px;">
           <option value="PENDING" ${a.status === "PENDING" ? "selected" : ""}>Pending</option>
           <option value="CONFIRMED" ${a.status === "CONFIRMED" ? "selected" : ""}>Confirmed</option>
           <option value="COMPLETED" ${a.status === "COMPLETED" ? "selected" : ""}>Completed</option>
+          <option value="REJECTED" ${a.status === "REJECTED" ? "selected" : ""}>Rejected</option>
           <option value="CANCELLED" ${a.status === "CANCELLED" ? "selected" : ""}>Cancelled</option>
+          <option value="RESCHEDULED" ${a.status === "RESCHEDULED" ? "selected" : ""}>Rescheduled</option>
         </select>
-        ${a.status !== "CANCELLED" ? `
-          <button class="btn btn-secondary btn-sm" style="color:#dc2626;" onclick="rejectAppointment('${a.id}')">
-            <i class="fa-solid fa-ban"></i> Reject
-          </button>
-        ` : ""}
-        <button class="btn btn-outline btn-sm" style="color:#94a3b8;" onclick="deleteAppointmentRecord('${a.id}')" title="Delete Booking Record">
-          <i class="fa-solid fa-trash"></i>
-        </button>
         <a href="https://wa.me/91${a.patientPhone}?text=Hello%20${encodeURIComponent(a.patientName)},%20this%20is%20${encodeURIComponent(CLINIC_DATA.doctorName)}%20from%20${encodeURIComponent(CLINIC_DATA.clinicName)}%20regarding%20your%20appointment%20${a.id}." target="_blank" class="btn btn-whatsapp btn-sm">
           <i class="fa-brands fa-whatsapp"></i> Chat
         </a>
@@ -1036,8 +1074,18 @@ function confirmAndNotifyPatient(id) {
 
 function rejectAppointment(id) {
   requireOwnerAuth();
-  if (confirm("Are you sure you want to reject/cancel this appointment?")) {
-    updateAppointmentStatus(id, "CANCELLED");
+  if (confirm("Are you sure you want to reject this appointment?")) {
+    const appointments = getStoredAppointments();
+    const target = appointments.find(a => a.id === id);
+    updateAppointmentStatus(id, "REJECTED");
+
+    if (target) {
+      const msg = "*" + encodeURIComponent(CLINIC_DATA.clinicName) + " - Appointment Update*%0A%0A" +
+        "Dear *" + encodeURIComponent(target.patientName) + "*,%0A" +
+        "Your appointment request (" + encodeURIComponent(target.id) + ") for *" + encodeURIComponent(target.date) + "* has been updated to REJECTED.%0A%0A" +
+        "_Please choose another slot or call " + encodeURIComponent(CLINIC_DATA.phone) + "._";
+      window.open("https://wa.me/91" + target.patientPhone + "?text=" + msg, "_blank");
+    }
   }
 }
 
@@ -1436,3 +1484,784 @@ if (typeof module !== "undefined" && module.exports) {
     hashCredential
   };
 }
+
+
+// ================= REAL-TIME FIRESTORE SYNCHRONIZATION =================
+let firestoreUnsubscribe = null;
+
+function setupRealtimeFirestoreSync() {
+  if (typeof window === "undefined" || !window.IS_FIREBASE_ENABLED || !window.db) {
+    return;
+  }
+  try {
+    if (firestoreUnsubscribe) {
+      firestoreUnsubscribe();
+    }
+    firestoreUnsubscribe = window.db.collection("appointments").onSnapshot((snapshot) => {
+      const remoteAppts = [];
+      snapshot.forEach(doc => {
+        remoteAppts.push(doc.data());
+      });
+      if (remoteAppts.length > 0) {
+        // Merge with local storage ensuring newest data
+        const local = getStoredAppointments();
+        const map = new Map();
+        local.forEach(a => map.set(a.id, a));
+        remoteAppts.forEach(a => map.set(a.id, { ...(map.get(a.id) || {}), ...a }));
+        const merged = Array.from(map.values()).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+        saveAppointments(merged);
+
+        // Update active UI
+        if (isOwnerAuthenticated()) {
+          renderAdminDashboard();
+        }
+        const patientSession = getActivePatientSession();
+        if (patientSession) {
+          renderPatientDashboardData(patientSession.phone);
+        }
+      }
+    }, (err) => {
+      console.warn("Firestore snapshot notice:", err);
+    });
+  } catch (err) {
+    console.warn("Realtime Firestore listener setup failed:", err);
+  }
+}
+
+// ================= PATIENT AUTHENTICATION & SECURE PORTAL =================
+
+function getStoredPatientUsers() {
+  try {
+    if (typeof localStorage === "undefined") return {};
+    const raw = localStorage.getItem(STORAGE_KEYS.PATIENT_USERS);
+    return raw ? JSON.parse(raw) : {};
+  } catch (e) {
+    return {};
+  }
+}
+
+function savePatientUsers(users) {
+  try {
+    if (typeof localStorage === "undefined") return;
+    localStorage.setItem(STORAGE_KEYS.PATIENT_USERS, JSON.stringify(users));
+  } catch (e) {
+    console.error("Error saving patient users", e);
+  }
+}
+
+function getActivePatientSession() {
+  try {
+    if (typeof sessionStorage === "undefined") return null;
+    const raw = sessionStorage.getItem(STORAGE_KEYS.PATIENT_SESSION);
+    if (!raw) return null;
+    const session = JSON.parse(raw);
+    if (!session || !session.phone || !session.expiresAt) return null;
+    if (Date.now() > session.expiresAt) {
+      sessionStorage.removeItem(STORAGE_KEYS.PATIENT_SESSION);
+      return null;
+    }
+    return session;
+  } catch (e) {
+    return null;
+  }
+}
+
+function openPatientPortal() {
+  const modal = document.getElementById("patientModal");
+  if (modal) {
+    modal.classList.add("active");
+    document.body.style.overflow = "hidden";
+    updatePatientPortalUI();
+  }
+}
+
+function closePatientModal() {
+  const modal = document.getElementById("patientModal");
+  if (modal) {
+    modal.classList.remove("active");
+    document.body.style.overflow = "";
+    if (window.location.hash.startsWith("#patient")) {
+      history.pushState("", document.title, window.location.pathname + window.location.search);
+    }
+  }
+}
+
+function openPatientPortalFromConfirmation() {
+  closeConfirmationModal();
+  openPatientPortal();
+}
+
+function switchPatientAuthTab(tab) {
+  const loginBtn = document.getElementById("tabPatientLoginBtn");
+  const signupBtn = document.getElementById("tabPatientSignupBtn");
+  const loginForm = document.getElementById("patientLoginForm");
+  const signupForm = document.getElementById("patientSignupForm");
+  const alertBox = document.getElementById("patientAuthAlertMsg");
+  if (alertBox) alertBox.style.display = "none";
+
+  if (tab === "signup") {
+    if (loginBtn) loginBtn.classList.remove("active");
+    if (signupBtn) signupBtn.classList.add("active");
+    if (loginForm) loginForm.style.display = "none";
+    if (signupForm) signupForm.style.display = "block";
+  } else {
+    if (loginBtn) loginBtn.classList.add("active");
+    if (signupBtn) signupBtn.classList.remove("active");
+    if (loginForm) loginForm.style.display = "block";
+    if (signupForm) signupForm.style.display = "none";
+  }
+}
+
+function updatePatientPortalUI() {
+  const session = getActivePatientSession();
+  const authView = document.getElementById("patientAuthView");
+  const dashView = document.getElementById("patientDashboardView");
+
+  if (!session) {
+    if (authView) authView.style.display = "block";
+    if (dashView) dashView.style.display = "none";
+  } else {
+    if (authView) authView.style.display = "none";
+    if (dashView) dashView.style.display = "block";
+    renderPatientDashboardData(session.phone);
+  }
+}
+
+// 1. Patient Sign Up Handler
+async function handlePatientSignupSubmit(event) {
+  event.preventDefault();
+  const nameInput = document.getElementById("signupPatientName");
+  const phoneInput = document.getElementById("signupPatientPhone");
+  const emailInput = document.getElementById("signupPatientEmail");
+  const passInput = document.getElementById("signupPatientPassword");
+  const confirmPassInput = document.getElementById("signupPatientConfirmPassword");
+  const alertBox = document.getElementById("patientAuthAlertMsg");
+
+  const fullName = (nameInput ? nameInput.value : "").trim();
+  const rawPhone = (phoneInput ? phoneInput.value : "").replace(/\D/g, "");
+  const phone = rawPhone.length >= 10 ? rawPhone.slice(-10) : rawPhone;
+  const email = (emailInput ? emailInput.value : "").trim();
+  const password = passInput ? passInput.value : "";
+  const confirmPassword = confirmPassInput ? confirmPassInput.value : "";
+
+  if (fullName.length < 2) {
+    displayFeedback(alertBox, "Please enter your full name.", false);
+    return;
+  }
+  if (phone.length !== 10) {
+    displayFeedback(alertBox, "Please enter a valid 10-digit mobile number.", false);
+    return;
+  }
+  if (password.length < 4) {
+    displayFeedback(alertBox, "Password must be at least 4 characters long.", false);
+    return;
+  }
+  if (password !== confirmPassword) {
+    displayFeedback(alertBox, "Passwords do not match. Please re-enter.", false);
+    return;
+  }
+
+  const users = getStoredPatientUsers();
+  if (users[phone]) {
+    displayFeedback(alertBox, "An account with this mobile number already exists. Please login.", false);
+    switchPatientAuthTab("login");
+    const loginPhone = document.getElementById("loginPatientPhone");
+    if (loginPhone) loginPhone.value = phone;
+    return;
+  }
+
+  // Create salted hash
+  const salt = generateSecureSalt();
+  const passwordHash = await hashCredential(password, salt);
+
+  const newUser = {
+    id: `USER-${phone}`,
+    fullName,
+    mobile: phone,
+    email: email || "",
+    role: "PATIENT",
+    salt,
+    passwordHash,
+    createdAt: new Date().toISOString()
+  };
+
+  users[phone] = newUser;
+  savePatientUsers(users);
+
+  // Sync user profile to Firestore
+  if (typeof window !== "undefined" && window.IS_FIREBASE_ENABLED && window.db) {
+    try {
+      window.db.collection("users").doc(newUser.id).set({
+        id: newUser.id,
+        fullName: newUser.fullName,
+        mobile: newUser.mobile,
+        email: newUser.email,
+        role: "PATIENT",
+        createdAt: newUser.createdAt
+      });
+    } catch (e) {
+      console.warn("Firestore user sync error", e);
+    }
+  }
+
+  // Establish patient session
+  const session = {
+    phone,
+    fullName,
+    email: email || "",
+    token: generateSecureSalt(),
+    expiresAt: Date.now() + 24 * 60 * 60 * 1000
+  };
+  sessionStorage.setItem(STORAGE_KEYS.PATIENT_SESSION, JSON.stringify(session));
+
+  if (nameInput) nameInput.value = "";
+  if (phoneInput) phoneInput.value = "";
+  if (emailInput) emailInput.value = "";
+  if (passInput) passInput.value = "";
+  if (confirmPassInput) confirmPassInput.value = "";
+  if (alertBox) alertBox.style.display = "none";
+
+  updatePatientPortalUI();
+}
+
+// 2. Returning Patient Login Handler
+async function handlePatientLoginSubmit(event) {
+  event.preventDefault();
+  const phoneInput = document.getElementById("loginPatientPhone");
+  const passInput = document.getElementById("loginPatientPassword");
+  const alertBox = document.getElementById("patientAuthAlertMsg");
+
+  const rawPhone = (phoneInput ? phoneInput.value : "").replace(/\D/g, "");
+  const phone = rawPhone.length >= 10 ? rawPhone.slice(-10) : rawPhone;
+  const password = passInput ? passInput.value : "";
+
+  if (phone.length !== 10) {
+    displayFeedback(alertBox, "Please enter your valid 10-digit mobile number.", false);
+    return;
+  }
+  if (!password) {
+    displayFeedback(alertBox, "Please enter your password.", false);
+    return;
+  }
+
+  const users = getStoredPatientUsers();
+  const user = users[phone];
+
+  if (!user) {
+    displayFeedback(alertBox, "No patient account found for this mobile. Please click Sign Up to register.", false);
+    return;
+  }
+
+  const testHash = await hashCredential(password, user.salt);
+  if (testHash !== user.passwordHash) {
+    displayFeedback(alertBox, "Incorrect password. Please verify and try again.", false);
+    return;
+  }
+
+  // Password confirmed! Create active session
+  const session = {
+    phone,
+    fullName: user.fullName || "Patient",
+    email: user.email || "",
+    token: generateSecureSalt(),
+    expiresAt: Date.now() + 24 * 60 * 60 * 1000
+  };
+  sessionStorage.setItem(STORAGE_KEYS.PATIENT_SESSION, JSON.stringify(session));
+
+  if (passInput) passInput.value = "";
+  if (alertBox) alertBox.style.display = "none";
+
+  // Directly open Patient Dashboard!
+  updatePatientPortalUI();
+}
+
+// 3. Patient Logout Handler
+function handlePatientLogout() {
+  sessionStorage.removeItem(STORAGE_KEYS.PATIENT_SESSION);
+  updatePatientPortalUI();
+}
+
+// 4. Patient Sub-Tabs Switching
+function switchPatientDashSubTab(subTab) {
+  const tabs = ["upcoming", "history", "profile"];
+  tabs.forEach(t => {
+    const btn = document.getElementById(`pill${t.charAt(0).toUpperCase() + t.slice(1)}Btn`);
+    const content = document.getElementById(`subTab${t.charAt(0).toUpperCase() + t.slice(1)}Content`);
+    if (btn) {
+      if (t === subTab) btn.classList.add("active");
+      else btn.classList.remove("active");
+    }
+    if (content) {
+      content.style.display = (t === subTab) ? "block" : "none";
+    }
+  });
+
+  const session = getActivePatientSession();
+  if (session && subTab === "profile") {
+    const nameInp = document.getElementById("editProfileName");
+    const phoneInp = document.getElementById("editProfilePhone");
+    const emailInp = document.getElementById("editProfileEmail");
+    const users = getStoredPatientUsers();
+    const user = users[session.phone] || {};
+    if (nameInp) nameInp.value = session.fullName || user.fullName || "";
+    if (phoneInp) phoneInp.value = `+91 ${session.phone}`;
+    if (emailInp) emailInp.value = session.email || user.email || "";
+  }
+}
+
+// 5. Open Booking Pre-filled from Patient Dashboard
+function openBookingFromPatientDashboard() {
+  const session = getActivePatientSession();
+  closePatientModal();
+  openBookingModal();
+
+  if (session) {
+    const nameInp = document.getElementById("patientName");
+    const phoneInp = document.getElementById("patientPhone");
+    if (nameInp && !nameInp.value) nameInp.value = session.fullName || "";
+    if (phoneInp) phoneInp.value = session.phone || "";
+  }
+}
+
+// 6. Patient Profile Update
+function handlePatientProfileUpdate(event) {
+  event.preventDefault();
+  const session = getActivePatientSession();
+  if (!session) return;
+
+  const nameInp = document.getElementById("editProfileName");
+  const emailInp = document.getElementById("editProfileEmail");
+  const msgBox = document.getElementById("patientProfileFeedbackMsg");
+
+  const newName = (nameInp ? nameInp.value : "").trim();
+  const newEmail = (emailInp ? emailInp.value : "").trim();
+
+  if (newName.length < 2) {
+    alert("Please enter a valid full name.");
+    return;
+  }
+
+  const users = getStoredPatientUsers();
+  if (users[session.phone]) {
+    users[session.phone].fullName = newName;
+    users[session.phone].email = newEmail;
+    savePatientUsers(users);
+  }
+
+  session.fullName = newName;
+  session.email = newEmail;
+  sessionStorage.setItem(STORAGE_KEYS.PATIENT_SESSION, JSON.stringify(session));
+
+  // Sync to Firestore
+  if (typeof window !== "undefined" && window.IS_FIREBASE_ENABLED && window.db) {
+    try {
+      window.db.collection("users").doc(`USER-${session.phone}`).update({
+        fullName: newName,
+        email: newEmail
+      });
+    } catch (e) {
+      console.warn("Firestore profile update error", e);
+    }
+  }
+
+  renderPatientDashboardData(session.phone);
+  displayFeedback(msgBox, "✓ Profile updated successfully!", true);
+}
+
+// 7. Render Patient Dashboard Data (Upcoming & History)
+function renderPatientDashboardData(phone) {
+  const session = getActivePatientSession();
+  const welcomeName = document.getElementById("patientWelcomeName");
+  const phoneBadge = document.getElementById("patientPhoneDisplayBadge");
+  const users = getStoredPatientUsers();
+  const user = users[phone] || {};
+
+  const displayName = session?.fullName || user.fullName || "Patient";
+  if (welcomeName) welcomeName.textContent = `${displayName} 👋`;
+  if (phoneBadge) phoneBadge.innerHTML = `<i class="fa-solid fa-phone"></i> +91 ${phone}`;
+
+  const all = getStoredAppointments();
+  // Filter strictly for this patient (Data Separation)
+  const patientBookings = all.filter(a => {
+    const rawA = (a.patientPhone || "").replace(/\D/g, "");
+    const cleanA = rawA.length >= 10 ? rawA.slice(-10) : rawA;
+    return cleanA === phone;
+  });
+
+  const countBadge = document.getElementById("patientHistoryCountBadge");
+  if (countBadge) countBadge.textContent = `${patientBookings.length} Record${patientBookings.length === 1 ? "" : "s"}`;
+
+  // UPCOMING APPOINTMENT LOGIC
+  const upcomingContainer = document.getElementById("patientUpcomingContainer");
+  if (upcomingContainer) {
+    // Find earliest confirmed or pending appointment that is today or in future
+    const todayStr = new Date().toISOString().split("T")[0];
+    const upcomingList = patientBookings.filter(a => a.status === "CONFIRMED" || a.status === "PENDING" || a.status === "RESCHEDULED");
+
+    if (upcomingList.length === 0) {
+      upcomingContainer.innerHTML = `
+        <div style="text-align:center; padding:28px 16px; background:#fff; border:1px dashed var(--border); border-radius:12px; margin-bottom:14px;">
+          <i class="fa-solid fa-calendar-check" style="font-size:32px; color:#94a3b8; margin-bottom:8px; display:block;"></i>
+          <h4 style="margin:0 0 4px; font-size:15px; color:#334155;">No Upcoming Appointments</h4>
+          <p style="margin:0 0 14px; font-size:12px; color:#64748b;">Ready to consult with Dr. Balaji? Book your slot in seconds.</p>
+          <button class="btn btn-primary btn-sm" onclick="openBookingFromPatientDashboard()" style="background:#0d9488; border-color:#0d9488; font-weight:700;">
+            <i class="fa-solid fa-calendar-plus"></i> Book Consultation Now
+          </button>
+        </div>
+      `;
+    } else {
+      const topUpcoming = upcomingList[0];
+      const isConfirmed = topUpcoming.status === "CONFIRMED";
+      const isRescheduled = topUpcoming.status === "RESCHEDULED";
+      const isPending = topUpcoming.status === "PENDING";
+
+      const badgeColor = isConfirmed ? "#16a34a" : (isRescheduled ? "#d97706" : "#b45309");
+      const badgeBg = isConfirmed ? "#dcfce7" : (isRescheduled ? "#fef3c7" : "#fffbeb");
+      const badgeBorder = isConfirmed ? "#86efac" : (isRescheduled ? "#fde68a" : "#fde68a");
+      const statusIcon = isConfirmed ? "fa-solid fa-circle-check" : "fa-solid fa-clock";
+
+      upcomingContainer.innerHTML = `
+        <div class="patient-upcoming-card">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
+            <div>
+              <span class="patient-upcoming-badge" style="background:${badgeColor};">
+                <i class="${statusIcon}"></i> ${topUpcoming.status}
+              </span>
+              <span style="font-size:11px; color:#64748b; margin-left:8px; font-family:monospace; font-weight:700;">${topUpcoming.id}</span>
+            </div>
+            <span style="font-size:12px; color:#0d9488; font-weight:700;">
+              <i class="fa-solid fa-indian-rupee-sign"></i> ₹${CLINIC_DATA.fee}
+            </span>
+          </div>
+
+          <div style="background:${badgeBg}; border:1px solid ${badgeBorder}; border-radius:10px; padding:12px; margin-bottom:12px;">
+            <strong style="color:${badgeColor}; font-size:13px; display:block; margin-bottom:4px;">
+              ${isConfirmed ? "✅ Appointment Confirmed by Doctor" : (isRescheduled ? "📅 Appointment Rescheduled to New Time" : "⏳ Pending Doctor Confirmation")}
+            </strong>
+            <p style="margin:0; font-size:12px; color:#334155;">
+              ${isConfirmed ? `Dr. ${CLINIC_DATA.doctorName} has approved your booking. Please visit or join on time.` : (isRescheduled ? `Dr. ${CLINIC_DATA.doctorName} has updated your appointment slot.` : `Request received. Dr. ${CLINIC_DATA.doctorName} will review and confirm shortly.`)}
+            </p>
+          </div>
+
+          <div class="patient-history-details">
+            <div><i class="fa-solid fa-user-doctor"></i> <span><strong>Doctor:</strong> ${CLINIC_DATA.doctorName}</span></div>
+            <div><i class="fa-regular fa-calendar"></i> <span><strong>Date:</strong> ${topUpcoming.date}</span></div>
+            <div><i class="fa-regular fa-clock"></i> <span><strong>Time:</strong> ${topUpcoming.timeSlot}</span></div>
+            <div><i class="fa-solid fa-stethoscope"></i> <span><strong>Type:</strong> ${topUpcoming.consultationType === "IN_CLINIC" ? `In-Clinic (${CLINIC_DATA.clinicName})` : "Online Video Consultation"}</span></div>
+          </div>
+
+          <div style="display:flex; gap:8px; margin-top:12px; border-top:1px dashed #bbf7d0; padding-top:10px;">
+            <button class="btn btn-outline btn-sm" style="flex:1; font-size:12px;" onclick="viewBookingTicket('${topUpcoming.id}')">
+              <i class="fa-solid fa-ticket"></i> View Ticket / QR
+            </button>
+            <a href="https://wa.me/91${(CLINIC_DATA.cleanPhone || CLINIC_DATA.phone.replace(/\\D/g, '')).slice(-10)}?text=Hello%20Dr.%20${encodeURIComponent(CLINIC_DATA.doctorName)},%20I%20am%20inquiring%20about%20my%20appointment%20${topUpcoming.id}" target="_blank" class="btn btn-whatsapp btn-sm" style="flex:1; font-size:12px; display:inline-flex; align-items:center; justify-content:center; gap:6px;">
+              <i class="fa-brands fa-whatsapp"></i> Chat Clinic
+            </a>
+          </div>
+        </div>
+      `;
+    }
+  }
+
+  // COMPLETE APPOINTMENT HISTORY LIST
+  const historyListContainer = document.getElementById("patientAppointmentsList");
+  if (historyListContainer) {
+    if (patientBookings.length === 0) {
+      historyListContainer.innerHTML = `
+        <div style="text-align:center; padding:30px; color:#64748b; font-size:13px; background:#fff; border-radius:10px; border:1px solid var(--border);">
+          No consultation history found for this account yet.
+        </div>
+      `;
+    } else {
+      historyListContainer.innerHTML = patientBookings.map(a => {
+        const isConfirmed = a.status === "CONFIRMED";
+        const isPending = a.status === "PENDING";
+        const isRejected = a.status === "REJECTED";
+        const isCompleted = a.status === "COMPLETED";
+        const isRescheduled = a.status === "RESCHEDULED";
+
+        const badgeClass = isConfirmed ? "patient-status-confirmed" : (isPending ? "patient-status-pending" : (isRejected ? "patient-status-cancelled" : (isCompleted ? "patient-status-completed" : "patient-status-pending")));
+        const statusIcon = isConfirmed ? "fa-solid fa-circle-check" : (isPending ? "fa-solid fa-clock" : (isRejected ? "fa-solid fa-ban" : (isCompleted ? "fa-solid fa-check-double" : "fa-solid fa-calendar-alt")));
+
+        const doctorStatusBanner = isConfirmed 
+          ? `✅ Appointment Confirmed by Doctor` 
+          : (isPending 
+            ? `⏳ Pending Confirmation: Under Review` 
+            : (isRejected 
+              ? `❌ Appointment Rejected: Please choose another slot` 
+              : (isRescheduled 
+                ? `📅 Rescheduled to New Time by Doctor` 
+                : `Status: ${a.status}`)));
+
+        const bannerBg = isConfirmed ? "#f0fdf4" : (isPending ? "#fffbeb" : (isRejected ? "#fef2f2" : "#f0f9ff"));
+        const bannerBorder = isConfirmed ? "#bbf7d0" : (isPending ? "#fde68a" : (isRejected ? "#fecaca" : "#bae6fd"));
+        const bannerColor = isConfirmed ? "#15803d" : (isPending ? "#b45309" : (isRejected ? "#b91c1c" : "#0369a1"));
+
+        return `
+          <div class="patient-history-card">
+            <div class="patient-history-header">
+              <div>
+                <span class="patient-history-id">${a.id}</span>
+                <span style="font-size:11px; color:#64748b; margin-left:8px;">${new Date(a.createdAt || Date.now()).toLocaleDateString()}</span>
+              </div>
+              <span class="patient-status-badge ${badgeClass}">
+                <i class="${statusIcon}"></i> ${a.status}
+              </span>
+            </div>
+
+            <div style="background:${bannerBg}; border:1px solid ${bannerBorder}; border-radius:8px; padding:8px 12px; margin-bottom:10px; font-size:12px; color:${bannerColor}; font-weight:700;">
+              ${doctorStatusBanner}
+            </div>
+
+            <div class="patient-history-details">
+              <div><i class="fa-regular fa-calendar"></i> <span><strong>Date:</strong> ${a.date}</span></div>
+              <div><i class="fa-regular fa-clock"></i> <span><strong>Time:</strong> ${a.timeSlot}</span></div>
+              <div><i class="fa-solid fa-user-doctor"></i> <span><strong>Doctor:</strong> ${CLINIC_DATA.doctorName}</span></div>
+              <div><i class="fa-solid fa-stethoscope"></i> <span><strong>Type:</strong> ${a.consultationType === "IN_CLINIC" ? "Offline Consultation" : "Online Consultation"}</span></div>
+              <div><i class="fa-solid fa-notes-medical"></i> <span><strong>Reason:</strong> ${a.symptoms || "General"}</span></div>
+              <div><i class="fa-solid fa-indian-rupee-sign"></i> <span><strong>Fee:</strong> ₹${CLINIC_DATA.fee}</span></div>
+            </div>
+
+            <div style="display:flex; gap:8px; margin-top:8px; border-top:1px dashed #f1f5f9; padding-top:8px;">
+              <button class="btn btn-outline btn-sm" style="flex:1; font-size:12px;" onclick="viewBookingTicket('${a.id}')">
+                <i class="fa-solid fa-ticket"></i> View Ticket
+              </button>
+              <a href="https://wa.me/91${(CLINIC_DATA.cleanPhone || CLINIC_DATA.phone.replace(/\\D/g, '')).slice(-10)}?text=Hello%20Dr.%20${encodeURIComponent(CLINIC_DATA.doctorName)},%20inquiring%20about%20my%20token%20${a.id}" target="_blank" class="btn btn-whatsapp btn-sm" style="flex:1; font-size:12px; display:inline-flex; align-items:center; justify-content:center; gap:6px;">
+                <i class="fa-brands fa-whatsapp"></i> Chat Clinic
+              </a>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+  }
+}
+
+// 8. View ticket from patient list
+function viewBookingTicket(id) {
+  const all = getStoredAppointments();
+  const found = all.find(a => a.id === id);
+  if (!found) return;
+  closePatientModal();
+  currentBooking = found;
+  showConfirmation(found);
+}
+
+// ================= ADMIN PATIENTS DIRECTORY CONTROLLER =================
+
+function renderAdminPatients() {
+  requireOwnerAuth();
+  const container = document.getElementById("adminPatientsListContainer");
+  if (!container) return;
+
+  const search = (document.getElementById("adminPatientSearchInput")?.value || "").toLowerCase().trim();
+  const allAppointments = getStoredAppointments();
+  const storedUsers = getStoredPatientUsers();
+
+  // Aggregate patients by phone number
+  const patientMap = new Map();
+
+  // From registered accounts
+  Object.values(storedUsers).forEach(u => {
+    patientMap.set(u.mobile, {
+      id: u.id || `USER-${u.mobile}`,
+      fullName: u.fullName,
+      mobile: u.mobile,
+      email: u.email || "",
+      appointments: []
+    });
+  });
+
+  // From appointments
+  allAppointments.forEach(a => {
+    const rawP = (a.patientPhone || "").replace(/\D/g, "");
+    const cleanP = rawP.length >= 10 ? rawP.slice(-10) : rawP;
+    if (!cleanP) return;
+
+    if (!patientMap.has(cleanP)) {
+      patientMap.set(cleanP, {
+        id: `USER-${cleanP}`,
+        fullName: a.patientName || "Patient",
+        mobile: cleanP,
+        email: "",
+        appointments: []
+      });
+    }
+    const patientObj = patientMap.get(cleanP);
+    if (!patientObj.fullName && a.patientName) patientObj.fullName = a.patientName;
+    patientObj.appointments.push(a);
+  });
+
+  const patientList = Array.from(patientMap.values());
+  const filtered = patientList.filter(p => {
+    const matchesSearch = p.fullName.toLowerCase().includes(search) ||
+      p.mobile.includes(search) ||
+      p.email.toLowerCase().includes(search) ||
+      p.appointments.some(a => a.id.toLowerCase().includes(search));
+    return matchesSearch;
+  });
+
+  if (filtered.length === 0) {
+    container.innerHTML = `<div style="text-align:center; padding:30px; color:#64748b;">No matching patients found.</div>`;
+    return;
+  }
+
+  container.innerHTML = filtered.map(p => {
+    const sortedAppts = p.appointments.sort((x, y) => new Date(y.createdAt || 0) - new Date(x.createdAt || 0));
+    const upcoming = sortedAppts.filter(a => a.status === "CONFIRMED" || a.status === "PENDING" || a.status === "RESCHEDULED");
+    const completed = sortedAppts.filter(a => a.status === "COMPLETED");
+    const rejected = sortedAppts.filter(a => a.status === "REJECTED" || a.status === "CANCELLED");
+
+    return `
+      <div class="patient-history-card" style="border-left:4px solid #0d9488;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px; flex-wrap:wrap; gap:8px;">
+          <div>
+            <h4 style="margin:0; font-size:16px; color:#0f172a;">${p.fullName}</h4>
+            <span style="font-size:13px; color:#0d9488; font-weight:700;"><i class="fa-solid fa-phone"></i> +91 ${p.mobile}</span>
+            ${p.email ? `<span style="font-size:12px; color:#64748b; margin-left:10px;"><i class="fa-solid fa-envelope"></i> ${p.email}</span>` : ""}
+          </div>
+          <div style="display:flex; gap:6px;">
+            <span class="badge-pro" style="background:#0284c7; font-size:11px;">Total: ${sortedAppts.length} Bookings</span>
+            <span class="badge-success" style="font-size:11px;">${upcoming.length} Active</span>
+          </div>
+        </div>
+
+        <!-- Appointment History Breakdown -->
+        <div style="margin-top:10px;">
+          <strong style="font-size:12px; color:#334155; text-transform:uppercase; letter-spacing:0.5px; display:block; margin-bottom:6px;">
+            <i class="fa-solid fa-notes-medical"></i> Complete Consultation History:
+          </strong>
+          ${sortedAppts.length === 0 ? `<p style="font-size:12px; color:#94a3b8; margin:0;">No bookings submitted yet.</p>` : `
+            <div style="display:flex; flex-direction:column; gap:6px;">
+              ${sortedAppts.map(a => `
+                <div style="display:flex; justify-content:space-between; align-items:center; background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:6px 10px; font-size:12px;">
+                  <div>
+                    <strong style="color:#0f172a;">${a.id}</strong> &bull; 
+                    <span>${a.date} at ${a.timeSlot}</span> &bull; 
+                    <span style="color:#64748b;">${a.consultationType === "IN_CLINIC" ? "In-Clinic" : "Online Video"}</span> &bull;
+                    <span style="color:#0f766e;">${a.symptoms || "General"}</span>
+                  </div>
+                  <div>
+                    <span class="badge-${a.status === "CONFIRMED" ? "success" : (a.status === "PENDING" ? "warning" : "secondary")}" style="font-size:10px; padding:2px 6px; border-radius:4px; font-weight:700;">
+                      ${a.status}
+                    </span>
+                  </div>
+                </div>
+              `).join("")}
+            </div>
+          `}
+        </div>
+
+        <div style="display:flex; gap:8px; margin-top:12px; border-top:1px dashed var(--border); padding-top:8px;">
+          <a href="https://wa.me/91${p.mobile}?text=Hello%20${encodeURIComponent(p.fullName)},%20this%20is%20Dr.%20${encodeURIComponent(CLINIC_DATA.doctorName)}%20from%20${encodeURIComponent(CLINIC_DATA.clinicName)}." target="_blank" class="btn btn-whatsapp btn-sm" style="font-size:12px; display:inline-flex; align-items:center; gap:6px;">
+            <i class="fa-brands fa-whatsapp"></i> Chat Patient
+          </a>
+          <a href="tel:+91${p.mobile}" class="btn btn-outline btn-sm" style="font-size:12px; color:#0d9488; border-color:#0d9488;">
+            <i class="fa-solid fa-phone"></i> Call Patient
+          </a>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+// ================= ADMIN RESCHEDULE MODAL CONTROLLER =================
+
+function openRescheduleModal(apptId) {
+  requireOwnerAuth();
+  const all = getStoredAppointments();
+  const appt = all.find(a => a.id === apptId);
+  if (!appt) return;
+
+  const modal = document.getElementById("rescheduleModal");
+  const subEl = document.getElementById("rescheduleApptIdSubtitle");
+  const idInput = document.getElementById("rescheduleTargetId");
+  const nameInput = document.getElementById("reschedulePatientName");
+  const dateInput = document.getElementById("rescheduleDate");
+  const slotSelect = document.getElementById("rescheduleTimeSlot");
+
+  if (subEl) subEl.textContent = `Token: ${appt.id}`;
+  if (idInput) idInput.value = appt.id;
+  if (nameInput) nameInput.value = appt.patientName;
+  if (dateInput) {
+    const today = new Date().toISOString().split("T")[0];
+    dateInput.min = today;
+    dateInput.value = appt.date || today;
+  }
+
+  if (slotSelect) {
+    slotSelect.innerHTML = "";
+    const slots = CLINIC_DATA.slots || DEFAULT_CLINIC_DATA.slots;
+    slots.forEach(s => {
+      const opt = document.createElement("option");
+      opt.value = s;
+      opt.textContent = s;
+      if (s === appt.timeSlot) opt.selected = true;
+      slotSelect.appendChild(opt);
+    });
+  }
+
+  if (modal) {
+    modal.classList.add("active");
+  }
+}
+
+function closeRescheduleModal() {
+  const modal = document.getElementById("rescheduleModal");
+  if (modal) modal.classList.remove("active");
+}
+
+function handleRescheduleSubmit(event) {
+  event.preventDefault();
+  requireOwnerAuth();
+
+  const idInput = document.getElementById("rescheduleTargetId");
+  const dateInput = document.getElementById("rescheduleDate");
+  const slotSelect = document.getElementById("rescheduleTimeSlot");
+
+  const apptId = idInput?.value;
+  const newDate = dateInput?.value;
+  const newSlot = slotSelect?.value;
+
+  if (!apptId || !newDate || !newSlot) return;
+
+  const appointments = getStoredAppointments();
+  const target = appointments.find(a => a.id === apptId);
+  if (!target) return;
+
+  target.date = newDate;
+  target.timeSlot = newSlot;
+  target.status = "RESCHEDULED";
+  target.updatedAt = new Date().toISOString();
+
+  saveAppointments(appointments);
+
+  // Sync to Firestore
+  if (typeof window !== "undefined" && window.IS_FIREBASE_ENABLED && window.db) {
+    try {
+      window.db.collection("appointments").doc(apptId).update({
+        date: newDate,
+        timeSlot: newSlot,
+        status: "RESCHEDULED",
+        updatedAt: target.updatedAt
+      });
+    } catch (e) {
+      console.warn("Firestore update error", e);
+    }
+  }
+
+  closeRescheduleModal();
+  renderAdminDashboard();
+
+  // Send WhatsApp update notification to patient
+  const cleanPhone = (CLINIC_DATA.cleanPhone || CLINIC_DATA.phone.replace(/\D/g, "")).slice(-10);
+  const msg = `*${encodeURIComponent(CLINIC_DATA.clinicName)} - Appointment Rescheduled*%0A%0A` +
+    `Dear *${encodeURIComponent(target.patientName)}*,%0A` +
+    `Your appointment with *${encodeURIComponent(CLINIC_DATA.doctorName)}* has been rescheduled to:%0A%0A` +
+    `*New Date:* ${encodeURIComponent(newDate)}%0A` +
+    `*New Time:* ${encodeURIComponent(newSlot)}%0A` +
+    `*Token ID:* ${encodeURIComponent(target.id)}%0A%0A` +
+    `_Please contact ${encodeURIComponent(CLINIC_DATA.phone)} if you require further adjustments._`;
+  window.open(`https://wa.me/91${target.patientPhone}?text=${msg}`, "_blank");
+}
+

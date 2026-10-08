@@ -1279,3 +1279,187 @@ a:hover {
     display: none;
   }
 }
+
+/* ================= PATIENT / CLIENT PORTAL STYLES ================= */
+.patient-card-section {
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-bottom: 16px;
+}
+.patient-history-card {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 14px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  transition: all 0.2s ease;
+}
+.patient-history-card:hover {
+  border-color: var(--primary);
+  box-shadow: 0 4px 14px rgba(13,148,136,0.12);
+}
+.patient-history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f1f5f9;
+}
+.patient-history-id {
+  font-family: monospace;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--primary);
+  background: #f0fdfa;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+.patient-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.patient-status-confirmed {
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid #86efac;
+}
+.patient-status-pending {
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+.patient-status-cancelled {
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
+}
+.patient-status-completed {
+  background: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+}
+.patient-history-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 8px;
+  font-size: 13px;
+  color: #475569;
+  margin-bottom: 10px;
+}
+.patient-history-details div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.patient-history-details i {
+  color: var(--primary);
+  width: 16px;
+  text-align: center;
+}
+
+/* Tabs navigation for Patient Modal */
+.modal-tabs-header {
+  display: flex;
+  background: #f1f5f9;
+  border-radius: 10px;
+  padding: 4px;
+  margin-bottom: 16px;
+  gap: 4px;
+}
+.modal-tab-toggle {
+  flex: 1;
+  text-align: center;
+  padding: 9px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #475569;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.modal-tab-toggle.active {
+  background: #ffffff;
+  color: #0284c7;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+}
+
+/* Patient Dashboard Sub-navigation */
+.patient-nav-pills {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+.patient-pill-btn {
+  padding: 8px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid var(--border);
+  background: #ffffff;
+  color: #475569;
+  cursor: pointer;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
+.patient-pill-btn:hover {
+  border-color: #0284c7;
+  color: #0284c7;
+}
+.patient-pill-btn.active {
+  background: #0284c7;
+  border-color: #0284c7;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(2,132,199,0.25);
+}
+
+/* Patient Upcoming Banner */
+.patient-upcoming-card {
+  background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+  border: 2px solid #86efac;
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 18px;
+  position: relative;
+  box-shadow: 0 4px 14px rgba(22,163,74,0.1);
+}
+.patient-upcoming-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #16a34a;
+  color: #ffffff;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+/* Reschedule dialog styling */
+.reschedule-card {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 12px;
+  padding: 14px;
+  margin-top: 10px;
+}

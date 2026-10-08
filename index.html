@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>HOMEo AI Classical Clinic | Public Clinic Portal</title>
+  <title>Dr. Balaji Homeo Care | HOMEo Clinic Pro</title>
   <meta name="description" content="Book in-clinic and online homeopathy consultations with Dr. Balaji (BHMS, MD Homeopathy) at HOMEo AI Classical Clinic. Your health, our care.">
   <meta name="theme-color" content="#0d9488">
   
@@ -27,6 +27,7 @@
       <div class="quick-contact">
         <a href="tel:+919876543210" id="topPhoneLink"><i class="fa-solid fa-phone"></i> <span id="topPhoneDisplay">+91 98765 43210</span></a>
         <a href="https://wa.me/919876543210" target="_blank" class="wa-badge" id="topWaLink"><i class="fa-brands fa-whatsapp"></i> Chat on WhatsApp</a>
+        <a href="#patient-portal" onclick="openPatientPortal(); return false;" class="wa-badge" style="background:#0284c7;" title="Patient Login & Appointment Status"><i class="fa-solid fa-user-clock"></i> Patient Login / Status</a>
         <a href="#admin" onclick="openOwnerPortal(); return false;" class="wa-badge" style="background:#0f766e;" title="Private Owner Login"><i class="fa-solid fa-lock"></i> Owner Portal</a>
       </div>
     </div>
@@ -38,7 +39,7 @@
       <div class="brand">
         <img src="homeo_app_icon.jpg" alt="Clinic Logo" style="width:42px; height:42px; border-radius:12px; object-fit:cover; box-shadow:0 4px 12px rgba(13,148,136,0.25);">
         <div class="brand-text">
-          <span class="brand-title"><span id="navClinicTitle">SP Clinic</span> <span class="badge-pro" style="background:#0d9488;">HOMEo AI</span></span>
+          <span class="brand-title"><span id="navClinicTitle">Dr. Balaji Homeo Care</span> <span class="badge-pro" style="background:#0d9488;">HOMEo AI</span></span>
           <span class="brand-subtitle" id="navClinicSubtitle">Your health, our care.</span>
         </div>
       </div>
@@ -49,6 +50,9 @@
         <a href="#doctor">Doctor Profile</a>
         <a href="#about">About Clinic</a>
         <a href="#contact">Contact</a>
+        <button class="btn btn-outline btn-sm" onclick="openPatientPortal()" title="Patient Login - View Bookings & Confirmation" style="font-weight:700; color:#0284c7; border:2px solid #0284c7; font-size:12px; border-radius:8px;">
+          <i class="fa-solid fa-user-check"></i> My Appointments
+        </button>
         <button class="btn btn-outline btn-sm" onclick="openOwnerPortal()" title="Owner Only - Edit Clinic Information &amp; Password" style="font-weight:700; color:#0d9488; border:2px solid #0d9488; font-size:12px; border-radius:8px;">
           <i class="fa-solid fa-pen-to-square"></i> Edit Clinic (Owner)
         </button>
@@ -70,6 +74,7 @@
       <a href="#doctor" onclick="toggleMobileMenu()">Doctor Profile</a>
       <a href="#about" onclick="toggleMobileMenu()">About Clinic</a>
       <a href="#contact" onclick="toggleMobileMenu()">Contact</a>
+      <a href="#patient-portal" onclick="openPatientPortal(); toggleMobileMenu()"><i class="fa-solid fa-user-clock"></i> Patient Login / My Bookings</a>
       <a href="#admin" onclick="openOwnerPortal(); toggleMobileMenu()"><i class="fa-solid fa-lock"></i> Owner Portal</a>
       <div class="mobile-cta">
         <button class="btn btn-primary btn-block" onclick="openBookingModal(); toggleMobileMenu()">
@@ -91,7 +96,7 @@
         <span style="color: #6ee7b7; font-size: 12px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase;">HOMEOPATHIC WELLNESS &amp; AI</span>
       </div>
 
-      <h1 style="font-size: 28px; font-weight: 800; color: #ffffff; margin: 0 0 8px; letter-spacing: -0.5px;"><span id="welcomeClinicTitle">SP Clinic</span></h1>
+      <h1 style="font-size: 28px; font-weight: 800; color: #ffffff; margin: 0 0 8px; letter-spacing: -0.5px;"><span id="welcomeClinicTitle">Dr. Balaji Homeo Care</span></h1>
       <p style="font-size: 18px; color: #80deea; font-weight: 600; margin: 0 0 6px;"><span id="welcomeClinicSubtitle">HOMEo AI Classical Clinic • Your health, our care.</span></p>
       <p style="font-size: 13px; color: #94a3b8; margin: 0 0 24px;"><span id="welcomeClinicDesc">Digital Clinic Management &bull; Live Queue &bull; Classical Healing</span></p>
 
@@ -130,9 +135,12 @@
           Experience personalized constitutional homeopathic treatment with zero side effects. Book your in-clinic consultation or convenient online video appointment today.
         </p>
 
-        <div class="hero-actions">
+        <div class="hero-actions" style="display:flex; flex-wrap:wrap; gap:12px;">
           <button class="btn btn-primary btn-lg" onclick="openBookingModal()">
-            <i class="fa-solid fa-calendar-check"></i> Book Consultation Request
+            <i class="fa-solid fa-calendar-check"></i> Book Consultation
+          </button>
+          <button class="btn btn-outline btn-lg" onclick="openPatientPortal()" style="color:#0284c7; border:2px solid #0284c7; font-weight:700;">
+            <i class="fa-solid fa-user-check"></i> Patient Login / Sign Up
           </button>
           <a href="tel:+919876543210" class="btn btn-secondary btn-lg" id="heroCallClinicBtn">
             <i class="fa-solid fa-phone-volume"></i> Call Clinic (+91 9876543210)
@@ -317,7 +325,7 @@
             <i class="fa-solid fa-map-pin"></i>
             <div>
               <strong>Clinic Address</strong>
-              <p id="contactAddressDisplay">SP Clinic, 74 Gandhi Road, Near Central Park, Health Complex, Chennai - 600001</p>
+              <p id="contactAddressDisplay">Dr. Balaji Homeo Care, 74 Gandhi Road, Near Central Park, Health Complex, Chennai - 600001</p>
             </div>
           </div>
 
@@ -368,7 +376,7 @@
       <div class="footer-brand">
         <div class="brand">
           <div class="brand-logo"><i class="fa-solid fa-seedling"></i></div>
-          <span class="brand-title"><span id="footerClinicTitle">SP Clinic</span> <span class="badge-pro">PRO</span></span>
+          <span class="brand-title"><span id="footerClinicTitle">Dr. Balaji Homeo Care</span> <span class="badge-pro">PRO</span></span>
         </div>
         <p id="footerClinicDesc">Compassionate, scientific homeopathic healing for the entire family.</p>
       </div>
@@ -377,11 +385,12 @@
         <a href="#services">Specialities</a>
         <a href="#doctor">Doctor Profile</a>
         <a href="#contact">Contact</a>
+        <a href="#patient-portal" onclick="openPatientPortal(); return false;"><i class="fa-solid fa-user-check"></i> Patient Login & Status</a>
         <a href="#admin" onclick="openOwnerPortal(); return false;"><i class="fa-solid fa-lock"></i> Owner Portal</a>
       </div>
     </div>
     <div class="footer-bottom">
-      <p>&copy; 2026 <span id="footerCopyrightClinic">SP Clinic</span>. All Rights Reserved. Confidential Patient Care.</p>
+      <p>&copy; 2026 <span id="footerCopyrightClinic">Dr. Balaji Homeo Care</span>. All Rights Reserved. Confidential Patient Care.</p>
     </div>
   </footer>
 
@@ -407,7 +416,7 @@
                 <div class="radio-content">
                   <i class="fa-solid fa-hospital-user"></i>
                   <strong id="inClinicMainLabel">In-Clinic Visit</strong>
-                  <span id="inClinicSubText">At SP Clinic Chennai</span>
+                  <span id="inClinicSubText">At Dr. Balaji Homeo Care Chennai</span>
                 </div>
               </label>
               <label class="radio-card" id="radioCardOnline">
@@ -576,11 +585,198 @@
             <button class="btn btn-secondary btn-block" style="flex:1;" onclick="window.print()">
               <i class="fa-solid fa-print"></i> Print / PDF
             </button>
+            <button class="btn btn-primary btn-block" style="flex:1; background:#0284c7; border-color:#0284c7;" onclick="openPatientPortalFromConfirmation()">
+              <i class="fa-solid fa-user-clock"></i> Track in My Account
+            </button>
             <button class="btn btn-outline btn-block" style="flex:1;" onclick="closeConfirmationModal()">
               Close
             </button>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ================= PATIENT / CLIENT SECURE PORTAL MODAL ================= -->
+  <div class="modal-overlay" id="patientModal">
+    <div class="modal-card modal-md" id="patientModalCard" style="max-width: 640px;">
+      <div class="modal-header" style="background: linear-gradient(135deg, #f0fdfa, #e0f2fe);">
+        <div>
+          <h3 class="modal-title" id="patientModalTitle"><i class="fa-solid fa-user-clock" style="color:#0284c7;"></i> Patient Portal</h3>
+          <p class="modal-subtitle" id="patientModalSubtitle">Real-Time Appointments, Status &amp; Medical History</p>
+        </div>
+        <button class="close-btn" onclick="closePatientModal()">&times;</button>
+      </div>
+
+      <div class="modal-body" style="padding: 20px;">
+
+        <!-- 1. PATIENT AUTH VIEW (Login / Sign Up) -->
+        <div id="patientAuthView">
+          <!-- Toggle Tabs: Login vs Sign Up -->
+          <div class="modal-tabs-header">
+            <button type="button" id="tabPatientLoginBtn" class="modal-tab-toggle active" onclick="switchPatientAuthTab('login')">
+              <i class="fa-solid fa-right-to-bracket"></i> Returning Patient Login
+            </button>
+            <button type="button" id="tabPatientSignupBtn" class="modal-tab-toggle" onclick="switchPatientAuthTab('signup')">
+              <i class="fa-solid fa-user-plus"></i> New Patient Sign Up
+            </button>
+          </div>
+
+          <!-- Alert message box -->
+          <div id="patientAuthAlertMsg" class="auth-alert auth-alert-error" style="display:none; margin-bottom: 14px;"></div>
+
+          <!-- FORM A: Returning Patient Login -->
+          <form id="patientLoginForm" onsubmit="handlePatientLoginSubmit(event)">
+            <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 10px; padding: 12px; margin-bottom: 14px;">
+              <span style="font-size:12px; color:#0369a1; font-weight:600;">
+                <i class="fa-solid fa-shield-halved"></i> Welcome back! Login with your registered mobile number and password to view your appointments.
+              </span>
+            </div>
+
+            <div class="form-group">
+              <label for="loginPatientPhone" class="form-label"><i class="fa-solid fa-phone"></i> Mobile Number (Login ID) *</label>
+              <input type="tel" id="loginPatientPhone" required class="form-control" placeholder="10-digit mobile number" maxlength="15" autocomplete="username">
+            </div>
+
+            <div class="form-group">
+              <label for="loginPatientPassword" class="form-label"><i class="fa-solid fa-lock"></i> Password *</label>
+              <input type="password" id="loginPatientPassword" required class="form-control" placeholder="Enter your password" autocomplete="current-password">
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block" style="background:#0284c7; border-color:#0284c7; padding:12px; font-weight:700; margin-top:14px;">
+              <i class="fa-solid fa-right-to-bracket"></i> Login to My Dashboard
+            </button>
+
+            <div style="text-align:center; margin-top:14px; font-size:12px; color:#64748b;">
+              New patient? <a href="#" onclick="switchPatientAuthTab('signup'); return false;" style="color:#0284c7; font-weight:700;">Create an account here</a>
+            </div>
+          </form>
+
+          <!-- FORM B: New Patient Sign Up -->
+          <form id="patientSignupForm" onsubmit="handlePatientSignupSubmit(event)" style="display:none;">
+            <div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 10px; padding: 12px; margin-bottom: 14px;">
+              <span style="font-size:12px; color:#065f46; font-weight:600;">
+                <i class="fa-solid fa-user-check"></i> Create your patient account once to book appointments and track confirmations anytime.
+              </span>
+            </div>
+
+            <div class="form-group">
+              <label for="signupPatientName" class="form-label"><i class="fa-solid fa-user"></i> Full Name *</label>
+              <input type="text" id="signupPatientName" required class="form-control" placeholder="e.g. Arun Kumar" autocomplete="name">
+            </div>
+
+            <div class="form-row">
+              <div class="form-group col-6">
+                <label for="signupPatientPhone" class="form-label"><i class="fa-solid fa-phone"></i> Mobile Number *</label>
+                <input type="tel" id="signupPatientPhone" required class="form-control" placeholder="10-digit mobile" maxlength="15" autocomplete="tel">
+              </div>
+              <div class="form-group col-6">
+                <label for="signupPatientEmail" class="form-label"><i class="fa-solid fa-envelope"></i> Email (Optional)</label>
+                <input type="email" id="signupPatientEmail" class="form-control" placeholder="e.g. arun@gmail.com" autocomplete="email">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group col-6">
+                <label for="signupPatientPassword" class="form-label"><i class="fa-solid fa-lock"></i> Password *</label>
+                <input type="password" id="signupPatientPassword" required minlength="4" class="form-control" placeholder="Minimum 4 chars" autocomplete="new-password">
+              </div>
+              <div class="form-group col-6">
+                <label for="signupPatientConfirmPassword" class="form-label"><i class="fa-solid fa-lock-open"></i> Confirm Password *</label>
+                <input type="password" id="signupPatientConfirmPassword" required minlength="4" class="form-control" placeholder="Re-enter password" autocomplete="new-password">
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block" style="background:#0d9488; border-color:#0d9488; padding:12px; font-weight:700; margin-top:10px;">
+              <i class="fa-solid fa-user-plus"></i> Complete Sign Up &amp; Open Dashboard
+            </button>
+
+            <div style="text-align:center; margin-top:14px; font-size:12px; color:#64748b;">
+              Already have an account? <a href="#" onclick="switchPatientAuthTab('login'); return false;" style="color:#0284c7; font-weight:700;">Login here</a>
+            </div>
+          </form>
+        </div>
+
+        <!-- 2. PATIENT DASHBOARD VIEW (Shown Immediately After Login) -->
+        <div id="patientDashboardView" style="display:none;">
+          <!-- Patient Welcome Banner -->
+          <div style="display:flex; justify-content:space-between; align-items:center; background:linear-gradient(135deg, #f8fafc, #f1f5f9); border:1px solid var(--border); border-radius:12px; padding:14px 18px; margin-bottom:16px;">
+            <div>
+              <span style="font-size:12px; color:#64748b; font-weight:600;">Welcome,</span>
+              <h3 id="patientWelcomeName" style="margin:0; font-size:18px; color:#0f172a; font-weight:800;">Arun Kumar 👋</h3>
+              <span id="patientPhoneDisplayBadge" style="font-size:12px; color:#0284c7; font-weight:600;"><i class="fa-solid fa-phone"></i> +91 -</span>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <button class="btn btn-primary btn-sm" onclick="openBookingFromPatientDashboard()" style="background:#0d9488; border-color:#0d9488; font-weight:700; font-size:13px; padding:8px 14px;">
+                <i class="fa-solid fa-calendar-plus"></i> Book New Appointment
+              </button>
+              <button class="btn btn-outline btn-sm" onclick="handlePatientLogout()" style="font-size:12px; color:#be123c; border-color:#fecdd3;">
+                <i class="fa-solid fa-right-from-bracket"></i> Logout
+              </button>
+            </div>
+          </div>
+
+          <!-- Patient Dashboard Sub-Navigation Tabs -->
+          <div class="patient-nav-pills">
+            <button type="button" id="pillUpcomingBtn" class="patient-pill-btn active" onclick="switchPatientDashSubTab('upcoming')">
+              <i class="fa-solid fa-calendar-day"></i> Upcoming Appointment
+            </button>
+            <button type="button" id="pillHistoryBtn" class="patient-pill-btn" onclick="switchPatientDashSubTab('history')">
+              <i class="fa-solid fa-clock-rotate-left"></i> Appointment History
+            </button>
+            <button type="button" id="pillProfileBtn" class="patient-pill-btn" onclick="switchPatientDashSubTab('profile')">
+              <i class="fa-solid fa-id-card"></i> My Profile
+            </button>
+          </div>
+
+          <!-- SUB-TAB A: UPCOMING APPOINTMENT -->
+          <div id="subTabUpcomingContent">
+            <div id="patientUpcomingContainer">
+              <!-- Rendered dynamically: highlighted upcoming confirmed/pending card -->
+            </div>
+          </div>
+
+          <!-- SUB-TAB B: APPOINTMENT HISTORY -->
+          <div id="subTabHistoryContent" style="display:none;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+              <span style="font-size:13px; color:#475569; font-weight:700;">All Appointments</span>
+              <span id="patientHistoryCountBadge" class="badge-pro" style="background:#0284c7;">0 Records</span>
+            </div>
+            <div id="patientAppointmentsList" style="max-height:380px; overflow-y:auto; padding-right:4px;">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
+
+          <!-- SUB-TAB C: MY PROFILE -->
+          <div id="subTabProfileContent" style="display:none;">
+            <div class="patient-card-section">
+              <h4 style="font-size:15px; margin-bottom:12px; color:#0f172a;"><i class="fa-solid fa-user-pen" style="color:#0284c7;"></i> Update Basic Profile</h4>
+              <div id="patientProfileFeedbackMsg" class="auth-alert auth-alert-success" style="display:none; margin-bottom:12px;"></div>
+              <form id="patientProfileForm" onsubmit="handlePatientProfileUpdate(event)">
+                <div class="form-group">
+                  <label class="form-label">Full Name *</label>
+                  <input type="text" id="editProfileName" required class="form-control">
+                </div>
+                <div class="form-row">
+                  <div class="form-group col-6">
+                    <label class="form-label">Mobile Number (Read-only)</label>
+                    <input type="text" id="editProfilePhone" readonly class="form-control" style="background:#f1f5f9; cursor:not-allowed;">
+                  </div>
+                  <div class="form-group col-6">
+                    <label class="form-label">Email Address</label>
+                    <input type="email" id="editProfileEmail" class="form-control" placeholder="Enter email">
+                  </div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block" style="background:#0284c7; border-color:#0284c7; padding:10px; font-weight:700;">
+                  <i class="fa-solid fa-floppy-disk"></i> Save Profile
+                </button>
+              </form>
+            </div>
+          </div>
+
+        </div>
+
       </div>
     </div>
   </div>
@@ -608,7 +804,7 @@
           <form id="ownerSetupForm" onsubmit="handleOwnerSetup(event)">
             <div class="form-group">
               <label for="setupClinicName" class="form-label">Your Clinic Name *</label>
-              <input type="text" id="setupClinicName" required class="form-control" placeholder="e.g. My Clinic / City Homeo Clinic" value="SP Clinic">
+              <input type="text" id="setupClinicName" required class="form-control" placeholder="e.g. My Clinic / City Homeo Clinic" value="Dr. Balaji Homeo Care">
             </div>
             <div class="form-group">
               <label for="setupDoctorName" class="form-label">Doctor Name *</label>
@@ -695,7 +891,10 @@
           <!-- Navigation Tabs -->
           <div class="admin-tabs-nav">
             <button id="adminTabApptsBtn" class="admin-tab-nav-btn active" onclick="switchAdminTab('appts')">
-              <i class="fa-solid fa-calendar-check"></i> Bookings Queue
+              <i class="fa-solid fa-calendar-check"></i> Appointments
+            </button>
+            <button id="adminTabPatientsBtn" class="admin-tab-nav-btn" onclick="switchAdminTab('patients')">
+              <i class="fa-solid fa-users"></i> Patients Directory
             </button>
             <button id="adminTabSlotsBtn" class="admin-tab-nav-btn" onclick="switchAdminTab('slots')">
               <i class="fa-solid fa-clock"></i> Manage Slots
@@ -734,8 +933,10 @@
                 <option value="ALL">All Status</option>
                 <option value="PENDING">Pending Approval</option>
                 <option value="CONFIRMED">Confirmed</option>
+                <option value="RESCHEDULED">Rescheduled</option>
                 <option value="COMPLETED">Completed</option>
-                <option value="CANCELLED">Rejected / Cancelled</option>
+                <option value="REJECTED">Rejected</option>
+                <option value="CANCELLED">Cancelled</option>
               </select>
               <button class="btn btn-outline btn-sm" onclick="exportAppointmentsCSV()" title="Export Bookings to CSV">
                 <i class="fa-solid fa-file-excel"></i> Export CSV
@@ -744,6 +945,24 @@
 
             <div class="appointments-list-container" id="adminAppointmentsList">
               <!-- Dynamic appointment cards -->
+            </div>
+          </div>
+
+          <!-- TAB: PATIENTS DIRECTORY (Admin view) -->
+          <div id="adminPatientsTabContent" style="display:none; padding:6px 0;">
+            <div class="admin-card-section">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+                <div>
+                  <h4 style="margin:0; font-size:16px; color:#0f172a;"><i class="fa-solid fa-users" style="color:#0d9488;"></i> Registered Patients &amp; History</h4>
+                  <span style="font-size:12px; color:#64748b;">Search patient medical records, contact information, and entire consultation lifecycle</span>
+                </div>
+                <div style="width:100%; max-width:320px;">
+                  <input type="text" id="adminPatientSearchInput" oninput="renderAdminPatients()" class="form-control form-control-sm" placeholder="Search by name, phone, email, token...">
+                </div>
+              </div>
+              <div id="adminPatientsListContainer">
+                <!-- Dynamic patient cards with full history -->
+              </div>
             </div>
           </div>
 
@@ -848,7 +1067,7 @@
           <div id="adminClinicTabContent" style="display:none; padding:6px 0;">
             <div class="form-group">
               <label class="form-label">Clinic Name *</label>
-              <input type="text" id="editClinicName" class="form-control" value="SP Clinic" placeholder="e.g. SP Clinic">
+              <input type="text" id="editClinicName" class="form-control" value="Dr. Balaji Homeo Care" placeholder="e.g. SP Clinic">
             </div>
             <div class="form-group">
               <label class="form-label">Clinic Tagline / Subtitle</label>
@@ -866,7 +1085,7 @@
             </div>
             <div class="form-group">
               <label class="form-label">Clinic Address *</label>
-              <textarea id="editClinicAddress" class="form-control" rows="2">SP Clinic, 74 Gandhi Road, Near Central Park, Health Complex, Chennai - 600001</textarea>
+              <textarea id="editClinicAddress" class="form-control" rows="2">Dr. Balaji Homeo Care, 74 Gandhi Road, Near Central Park, Health Complex, Chennai - 600001</textarea>
             </div>
             <div class="form-group">
               <label class="form-label">Consulting Hours Text</label>
@@ -971,8 +1190,43 @@
     </button>
   </div>
 
-  <!-- Firebase App & Firestore JS SDK -->
+
+  <!-- ================= ADMIN RESCHEDULE MODAL ================= -->
+  <div class="modal-overlay" id="rescheduleModal" style="z-index: 10000;">
+    <div class="modal-card modal-sm" style="max-width: 440px;">
+      <div class="modal-header" style="background: #fffbeb;">
+        <div>
+          <h3 class="modal-title" style="color:#b45309;"><i class="fa-solid fa-clock-rotate-left"></i> Reschedule Appointment</h3>
+          <p class="modal-subtitle" id="rescheduleApptIdSubtitle">HM-2026-XXXX</p>
+        </div>
+        <button class="close-btn" onclick="closeRescheduleModal()">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 16px;">
+        <form id="rescheduleForm" onsubmit="handleRescheduleSubmit(event)">
+          <input type="hidden" id="rescheduleTargetId">
+          <div class="form-group">
+            <label class="form-label">Patient Name</label>
+            <input type="text" id="reschedulePatientName" readonly class="form-control" style="background:#f8fafc;">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Select New Date *</label>
+            <input type="date" id="rescheduleDate" required class="form-control">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Select New Slot *</label>
+            <select id="rescheduleTimeSlot" required class="form-control"></select>
+          </div>
+          <button type="submit" class="btn btn-primary btn-block" style="background:#d97706; border-color:#d97706; font-weight:700;">
+            <i class="fa-solid fa-calendar-check"></i> Confirm New Date &amp; Time
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+    <!-- Firebase App & Firestore JS SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
   <script src="firebase-config.js"></script>
   <script src="app.js"></script>
