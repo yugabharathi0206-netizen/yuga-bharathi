@@ -101,7 +101,7 @@ function getStoredOwnerAuth() {
 
 function isOwnerSetupComplete() {
   const auth = getStoredOwnerAuth();
-  return Boolean(auth && auth.isSetupComplete && auth.ownerIdHash && auth.passwordHash);
+  return Boolean(auth && auth.isSetupComplete && auth.passwordHash);
 }
 
 function isOwnerAuthenticated() {
@@ -242,11 +242,17 @@ function applyClinicDataToDOM() {
   const docDescP = document.querySelector(".doc-bio, #doctor .doc-info p");
   if (docDescP && CLINIC_DATA.doctorBio) docDescP.textContent = CLINIC_DATA.doctorBio;
 
-  // Update Doctor Photos
+  // Update Doctor Photos & Clinic Logo
   if (CLINIC_DATA.doctorPhoto) {
     document.querySelectorAll("img[alt*='Dr.'], img[alt*='Doctor'], .doc-avatar img").forEach(img => {
       img.src = CLINIC_DATA.doctorPhoto;
     });
+    const welcomeLogo = document.getElementById("welcomeClinicLogoImg");
+    if (welcomeLogo) welcomeLogo.src = CLINIC_DATA.doctorPhoto;
+
+    const navLogo = document.getElementById("navClinicLogoImg");
+    if (navLogo) navLogo.src = CLINIC_DATA.doctorPhoto;
+
     const preview = document.getElementById("editDoctorPicPreview");
     if (preview) preview.src = CLINIC_DATA.doctorPhoto;
   }
@@ -636,6 +642,22 @@ function closeAdminModal() {
   }
 }
 
+function previewSetupPhoto(input) {
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      uploadedDoctorPhotoBase64 = e.target.result;
+      const previewBox = document.getElementById("setupPhotoPreviewBox");
+      const previewImg = document.getElementById("setupPhotoPreviewImg");
+      if (previewBox && previewImg) {
+        previewImg.src = uploadedDoctorPhotoBase64;
+        previewBox.style.display = "flex";
+      }
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+
 function updateOwnerPortalUI() {
   const setupView = document.getElementById("ownerSetupView");
   const loginView = document.getElementById("ownerLoginView");
@@ -648,7 +670,7 @@ function updateOwnerPortalUI() {
   const isAuth = isOwnerAuthenticated();
 
   if (!isSetupDone) {
-    // 1. First-time setup: prompt Owner to configure credentials
+    // 1. First-time setup: prompt Owner to configure clinic details & secret password
     if (setupView) setupView.style.display = "block";
     if (loginView) loginView.style.display = "none";
     if (dashView) dashView.style.display = "none";
@@ -656,10 +678,23 @@ function updateOwnerPortalUI() {
       modalCard.classList.remove("modal-lg");
       modalCard.classList.add("modal-sm");
     }
-    if (modalTitle) modalTitle.innerHTML = `<i class="fa-solid fa-shield-halved"></i> Initial Owner Setup`;
-    if (modalSubtitle) modalSubtitle.textContent = `Set your private Owner ID & Master Password`;
+    if (modalTitle) modalTitle.innerHTML = `<i class="fa-solid fa-pen-to-square"></i> Set Up Your Clinic &amp; Password`;
+    if (modalSubtitle) modalSubtitle.textContent = `Enter your real clinic info and create your secret password`;
+
+    // Pre-fill fields with current clinic data if present
+    const cName = document.getElementById("setupClinicName");
+    if (cName && !cName.value) cName.value = CLINIC_DATA.clinicName || "";
+
+    const dName = document.getElementById("setupDoctorName");
+    if (dName && !dName.value) dName.value = CLINIC_DATA.doctorName || "";
+
+    const cPhone = document.getElementById("setupClinicPhone");
+    if (cPhone && !cPhone.value) cPhone.value = CLINIC_DATA.cleanPhone || "";
+
+    const cAddr = document.getElementById("setupClinicAddress");
+    if (cAddr && !cAddr.value) cAddr.value = CLINIC_DATA.address || "";
   } else if (!isAuth) {
-    // 2. Setup is done, but not logged in: show professional login
+    // 2. Setup is done, but not logged in: show password unlock screen
     if (setupView) setupView.style.display = "none";
     if (loginView) loginView.style.display = "block";
     if (dashView) dashView.style.display = "none";
@@ -667,8 +702,8 @@ function updateOwnerPortalUI() {
       modalCard.classList.remove("modal-lg");
       modalCard.classList.add("modal-sm");
     }
-    if (modalTitle) modalTitle.innerHTML = `<i class="fa-solid fa-lock"></i> Owner / Admin Login`;
-    if (modalSubtitle) modalSubtitle.textContent = `${CLINIC_DATA.clinicName} Private Management`;
+    if (modalTitle) modalTitle.innerHTML = `<i class="fa-solid fa-lock"></i> Owner Login — Enter Password`;
+    if (modalSubtitle) modalSubtitle.textContent = `${CLINIC_DATA.clinicName} Protected Management`;
   } else {
     // 3. Authenticated: show full Owner Dashboard
     if (setupView) setupView.style.display = "none";
@@ -688,30 +723,44 @@ function updateOwnerPortalUI() {
   }
 }
 
-// 1. Initial Setup Handler
+// 1. Initial Setup Handler: Saves real clinic details and private password
 async function handleOwnerSetup(event) {
   event.preventDefault();
-  if (isOwnerSetupComplete()) {
-    alert("Owner account has already been initialized. Please log in.");
-    updateOwnerPortalUI();
-    return;
-  }
 
-  const ownerIdInput = document.getElementById("setupOwnerId");
+  const clinicNameInput = document.getElementById("setupClinicName");
+  const docNameInput = document.getElementById("setupDoctorName");
+  const phoneInput = document.getElementById("setupClinicPhone");
+  const addrInput = document.getElementById("setupClinicAddress");
   const passInput = document.getElementById("setupOwnerPassword");
   const confirmInput = document.getElementById("setupOwnerPasswordConfirm");
   const errorDiv = document.getElementById("setupErrorMsg");
 
-  const ownerId = (ownerIdInput ? ownerIdInput.value : "").trim();
+  const clinicName = (clinicNameInput ? clinicNameInput.value : "").trim();
+  const doctorName = (docNameInput ? docNameInput.value : "").trim();
+  const rawPhone = (phoneInput ? phoneInput.value : "").trim();
+  const address = (addrInput ? addrInput.value : "").trim();
   const password = passInput ? passInput.value : "";
   const confirmPass = confirmInput ? confirmInput.value : "";
 
-  if (ownerId.length < 3) {
-    showAuthError(errorDiv, "Owner ID must be at least 3 characters long.");
+  if (!clinicName) {
+    showAuthError(errorDiv, "Please enter your clinic name.");
     return;
   }
-  if (password.length < 6) {
-    showAuthError(errorDiv, "Master Password must be at least 6 characters long.");
+  if (!doctorName) {
+    showAuthError(errorDiv, "Please enter the doctor name.");
+    return;
+  }
+  const cleanPhone = rawPhone.replace(/\D/g, "");
+  if (cleanPhone.length < 10) {
+    showAuthError(errorDiv, "Please enter your valid 10-digit mobile number.");
+    return;
+  }
+  if (!address) {
+    showAuthError(errorDiv, "Please enter your clinic address.");
+    return;
+  }
+  if (password.length < 4) {
+    showAuthError(errorDiv, "Password must be at least 4 characters long.");
     return;
   }
   if (password !== confirmPass) {
@@ -719,23 +768,38 @@ async function handleOwnerSetup(event) {
     return;
   }
 
+  // Update master clinic data with owner's real details
+  CLINIC_DATA.clinicName = clinicName;
+  CLINIC_DATA.doctorName = doctorName;
+  CLINIC_DATA.phone = rawPhone.startsWith("+91") ? rawPhone : `+91 ${cleanPhone.slice(-10)}`;
+  CLINIC_DATA.cleanPhone = cleanPhone.slice(-10);
+  CLINIC_DATA.address = address;
+  if (uploadedDoctorPhotoBase64) {
+    CLINIC_DATA.doctorPhoto = uploadedDoctorPhotoBase64;
+  }
+
+  // Save to persistent storage
+  try {
+    localStorage.setItem(STORAGE_KEYS.CLINIC_DATA, JSON.stringify(CLINIC_DATA));
+  } catch (e) {
+    console.error("Save clinic data error", e);
+  }
+
+  // Create salted password hash
   const salt = generateSecureSalt();
-  const ownerIdHash = await hashCredential(ownerId.toLowerCase(), salt);
   const passwordHash = await hashCredential(password, salt);
 
   const authRecord = {
     isSetupComplete: true,
-    ownerIdHash,
     passwordHash,
     salt,
     createdAt: new Date().toISOString()
   };
-
   localStorage.setItem(STORAGE_KEYS.OWNER_AUTH, JSON.stringify(authRecord));
 
   // Create active session
   const session = {
-    ownerId,
+    ownerId: doctorName || "Clinic Owner",
     token: generateSecureSalt(),
     expiresAt: Date.now() + 2 * 60 * 60 * 1000 // 2 hours
   };
@@ -745,39 +809,33 @@ async function handleOwnerSetup(event) {
   if (confirmInput) confirmInput.value = "";
   if (errorDiv) errorDiv.style.display = "none";
 
+  // Immediately apply new clinic name, phone, photo across the entire site
+  applyClinicDataToDOM();
   updateOwnerPortalUI();
 }
 
-// 2. Owner Login Handler
+// 2. Owner Login Handler: Unlocks using Owner's chosen password
 async function handleOwnerLogin(event) {
   event.preventDefault();
-  if (!isOwnerSetupComplete()) {
-    updateOwnerPortalUI();
-    return;
-  }
-
-  const idInput = document.getElementById("ownerLoginId");
   const passInput = document.getElementById("ownerLoginPassword");
   const errorDiv = document.getElementById("loginErrorMsg");
   const errorText = document.getElementById("loginErrorText");
 
-  const ownerId = (idInput ? idInput.value : "").trim();
   const password = passInput ? passInput.value : "";
-
   const auth = getStoredOwnerAuth();
-  if (!auth) {
+
+  if (!auth || !auth.passwordHash) {
     updateOwnerPortalUI();
     return;
   }
 
-  const checkIdHash = await hashCredential(ownerId.toLowerCase(), auth.salt);
   const checkPassHash = await hashCredential(password, auth.salt);
 
-  if (checkIdHash === auth.ownerIdHash && checkPassHash === auth.passwordHash) {
-    // Authentication successful
+  if (checkPassHash === auth.passwordHash) {
+    // Password correct
     if (errorDiv) errorDiv.style.display = "none";
     const session = {
-      ownerId,
+      ownerId: CLINIC_DATA.doctorName || "Clinic Owner",
       token: generateSecureSalt(),
       expiresAt: Date.now() + 2 * 60 * 60 * 1000
     };
@@ -786,9 +844,9 @@ async function handleOwnerLogin(event) {
     if (passInput) passInput.value = "";
     updateOwnerPortalUI();
   } else {
-    // Authentication failed
+    // Password incorrect
     if (errorDiv) {
-      if (errorText) errorText.textContent = "Invalid Owner ID or Password.";
+      if (errorText) errorText.textContent = "Invalid Password. Please enter the password you created.";
       errorDiv.style.display = "flex";
     }
     if (passInput) passInput.value = "";

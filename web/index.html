@@ -49,8 +49,8 @@
         <a href="#doctor">Doctor Profile</a>
         <a href="#about">About Clinic</a>
         <a href="#contact">Contact</a>
-        <button class="btn btn-outline btn-sm" onclick="openOwnerPortal()" title="Secure Owner Portal" style="font-size:12px;">
-          <i class="fa-solid fa-user-shield"></i> Owner Access
+        <button class="btn btn-outline btn-sm" onclick="openOwnerPortal()" title="Owner Only - Edit Clinic Information &amp; Password" style="font-weight:700; color:#0d9488; border:2px solid #0d9488; font-size:12px; border-radius:8px;">
+          <i class="fa-solid fa-pen-to-square"></i> Edit Clinic (Owner)
         </button>
         <button class="btn btn-primary btn-sm book-btn-nav" onclick="openBookingModal()">
           <i class="fa-solid fa-calendar-plus"></i> Book Appointment
@@ -82,9 +82,9 @@
   <!-- Welcome App Banner (Matching Android App Screenshot: HOMEo AI Classical Clinic) -->
   <section class="welcome-app-banner" style="background: linear-gradient(180deg, #0a192f 0%, #0d2b24 60%, #0a192f 100%); padding: 50px 20px 40px; text-align: center; color: #fff; border-bottom: 2px solid rgba(13, 148, 136, 0.4);">
     <div style="max-width: 600px; margin: 0 auto;">
-      <!-- Glowing 3D Orb Logo -->
+      <!-- Glowing 3D Orb Logo / Custom Clinic Photo -->
       <div style="margin-bottom: 20px; display: inline-block; position: relative;">
-        <img src="homeo_app_icon.jpg" alt="HOMEo AI Orb Logo" style="width: 120px; height: 120px; border-radius: 50%; box-shadow: 0 0 35px rgba(0, 230, 118, 0.5), 0 0 60px rgba(0, 176, 255, 0.3); border: 3px solid #00e676; object-fit: cover;">
+        <img id="welcomeClinicLogoImg" src="homeo_app_icon.jpg" alt="Clinic Logo" style="width: 120px; height: 120px; border-radius: 50%; box-shadow: 0 0 35px rgba(0, 230, 118, 0.5), 0 0 60px rgba(0, 176, 255, 0.3); border: 3px solid #00e676; object-fit: cover;">
       </div>
 
       <div style="display: inline-block; background: rgba(13, 148, 136, 0.25); border: 1px solid #10b981; border-radius: 30px; padding: 6px 18px; margin-bottom: 16px;">
@@ -93,7 +93,7 @@
 
       <h1 style="font-size: 28px; font-weight: 800; color: #ffffff; margin: 0 0 8px; letter-spacing: -0.5px;"><span id="welcomeClinicTitle">SP Clinic</span></h1>
       <p style="font-size: 18px; color: #80deea; font-weight: 600; margin: 0 0 6px;"><span id="welcomeClinicSubtitle">HOMEo AI Classical Clinic • Your health, our care.</span></p>
-      <p style="font-size: 13px; color: #94a3b8; margin: 0 0 28px;"><span id="welcomeClinicDesc">Digital Clinic Management &bull; Live Queue &bull; Classical Healing</span></p>
+      <p style="font-size: 13px; color: #94a3b8; margin: 0 0 24px;"><span id="welcomeClinicDesc">Digital Clinic Management &bull; Live Queue &bull; Classical Healing</span></p>
 
       <div style="display: flex; flex-direction: column; gap: 12px; max-width: 380px; margin: 0 auto;">
         <!-- ENTER CLINIC -> Button -->
@@ -102,9 +102,16 @@
         </button>
 
         <!-- Browse Public Clinic Page (Guest) Link -->
-        <a href="#doctor" style="color: #80cbc4; font-size: 14px; text-decoration: none; font-weight: 600; padding: 8px;">
+        <a href="#doctor" style="color: #80cbc4; font-size: 14px; text-decoration: none; font-weight: 600; padding: 6px;">
           Browse Public Clinic Page (Guest) &darr;
         </a>
+
+        <!-- Owner Quick Edit Notice -->
+        <div style="margin-top: 6px;">
+          <button onclick="openOwnerPortal()" class="btn btn-sm btn-outline" style="border: 1px solid #10b981; color: #a7f3d0; font-size: 12px; font-weight: 700; padding: 6px 14px; border-radius: 20px; background: rgba(13, 148, 136, 0.25); cursor: pointer;">
+            <i class="fa-solid fa-pen-to-square"></i> Edit Clinic Name, Phone &amp; Photo (Owner Only)
+          </button>
+        </div>
       </div>
     </div>
   </section>
@@ -583,64 +590,88 @@
     <div class="modal-card modal-sm" id="adminModalCard">
       <div class="modal-header">
         <div>
-          <h3 class="modal-title" id="adminModalTitle"><i class="fa-solid fa-user-shield"></i> Owner Access Portal</h3>
-          <p class="modal-subtitle" id="adminModalSubtitle">SP Clinic Private Administration</p>
+          <h3 class="modal-title" id="adminModalTitle"><i class="fa-solid fa-user-shield"></i> Edit Clinic (Owner Access)</h3>
+          <p class="modal-subtitle" id="adminModalSubtitle">Private Clinic Management &amp; Settings</p>
         </div>
         <button class="close-btn" onclick="closeAdminModal()">&times;</button>
       </div>
 
       <div class="modal-body">
-        <!-- 1. FIRST-TIME OWNER SETUP FORM (Only shown if owner credentials have not been created yet) -->
+        <!-- 1. FIRST-TIME OWNER SETUP FORM: Set Real Clinic Details & Private Password -->
         <div id="ownerSetupView" style="display:none;">
           <div class="auth-alert auth-alert-success" style="margin-bottom:14px;">
             <i class="fa-solid fa-shield-halved"></i>
             <div>
-              <strong>Owner Initialization:</strong> Set your private Owner ID and Master Password. Only you will have access to manage the clinic.
+              <strong>Owner First-Time Setup:</strong> Enter your real clinic information and create your private password. Only you will be able to edit this website.
             </div>
           </div>
           <form id="ownerSetupForm" onsubmit="handleOwnerSetup(event)">
             <div class="form-group">
-              <label for="setupOwnerId" class="form-label">Create Owner ID / Username / Email *</label>
-              <input type="text" id="setupOwnerId" required class="form-control" placeholder="e.g. balaji_owner or admin@spclinic.com" autocomplete="username">
+              <label for="setupClinicName" class="form-label">Your Clinic Name *</label>
+              <input type="text" id="setupClinicName" required class="form-control" placeholder="e.g. My Clinic / City Homeo Clinic" value="SP Clinic">
             </div>
             <div class="form-group">
-              <label for="setupOwnerPassword" class="form-label">Create Master Password *</label>
-              <input type="password" id="setupOwnerPassword" required minlength="6" class="form-control" placeholder="Minimum 6 characters" autocomplete="new-password">
+              <label for="setupDoctorName" class="form-label">Doctor Name *</label>
+              <input type="text" id="setupDoctorName" required class="form-control" placeholder="e.g. Dr. Balaji" value="Dr. Balaji">
             </div>
             <div class="form-group">
-              <label for="setupOwnerPasswordConfirm" class="form-label">Confirm Master Password *</label>
-              <input type="password" id="setupOwnerPasswordConfirm" required minlength="6" class="form-control" placeholder="Re-enter master password" autocomplete="new-password">
+              <label for="setupClinicPhone" class="form-label">Your Real Mobile / WhatsApp Number *</label>
+              <input type="tel" id="setupClinicPhone" required class="form-control" placeholder="Enter your 10-digit mobile number">
+              <small style="color:#64748b; font-size:11px;">This phone number will be used across the website for patient calls and WhatsApp booking.</small>
+            </div>
+            <div class="form-group">
+              <label for="setupClinicAddress" class="form-label">Clinic Address *</label>
+              <textarea id="setupClinicAddress" required class="form-control" rows="2" placeholder="Enter your real clinic address, city, state"></textarea>
+            </div>
+            <div class="form-group">
+              <label for="setupDoctorPhoto" class="form-label">Doctor Picture / Clinic Logo (Optional)</label>
+              <input type="file" id="setupDoctorPhoto" accept="image/*" class="form-control" onchange="previewSetupPhoto(this)">
+              <div id="setupPhotoPreviewBox" style="display:none; margin-top:8px; align-items:center; gap:10px;">
+                <img id="setupPhotoPreviewImg" src="" alt="Photo Preview" style="width:60px; height:60px; border-radius:50%; object-fit:cover; border:2px solid #0d9488;">
+                <span style="font-size:12px; color:#0d9488; font-weight:600;">✓ Photo ready to upload</span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="setupOwnerPassword" class="form-label">Create Your Private Owner Password *</label>
+              <input type="password" id="setupOwnerPassword" required minlength="4" class="form-control" placeholder="Enter a password of your choice" autocomplete="new-password">
+              <small style="color:#64748b; font-size:11px;">Choose your own secret password. Only this password can open the editor in the future.</small>
+            </div>
+            <div class="form-group">
+              <label for="setupOwnerPasswordConfirm" class="form-label">Confirm Your Password *</label>
+              <input type="password" id="setupOwnerPasswordConfirm" required minlength="4" class="form-control" placeholder="Re-enter your password" autocomplete="new-password">
             </div>
             <div id="setupErrorMsg" class="auth-alert auth-alert-error" style="display:none;"></div>
-            <button type="submit" class="btn btn-primary btn-block" style="padding:12px; font-weight:700;">
-              <i class="fa-solid fa-lock"></i> Set Credentials &amp; Open Owner Dashboard
+            <button type="submit" class="btn btn-primary btn-block" style="padding:13px; font-weight:700; font-size:15px; margin-top:14px;">
+              <i class="fa-solid fa-floppy-disk"></i> Save My Clinic &amp; Set My Password
             </button>
             <p style="font-size:11px; color:#64748b; margin-top:10px; text-align:center;">
-              <i class="fa-solid fa-circle-info"></i> Once created, no other admin account can ever be registered. Only this Owner account can sign in.
+              <i class="fa-solid fa-lock"></i> Your information and password will be saved securely. Patients will only have appointment booking access.
             </p>
           </form>
         </div>
 
-        <!-- 2. OWNER LOGIN FORM (Shown when credentials exist and owner is not logged in) -->
+        <!-- 2. OWNER LOGIN FORM (Shown when password exists and owner wants to edit clinic) -->
         <div id="ownerLoginView">
+          <div class="auth-alert auth-alert-success" style="margin-bottom:14px;">
+            <i class="fa-solid fa-lock"></i>
+            <div>
+              <strong>Owner Only Access:</strong> Enter your private password to edit clinic details, change phone number, or manage appointments.
+            </div>
+          </div>
           <div id="loginErrorMsg" class="auth-alert auth-alert-error" style="display:none;">
             <i class="fa-solid fa-triangle-exclamation"></i>
-            <span id="loginErrorText">Invalid Owner ID or Password.</span>
+            <span id="loginErrorText">Invalid Password. Please enter the password you created.</span>
           </div>
           <form id="ownerLoginForm" onsubmit="handleOwnerLogin(event)">
             <div class="form-group">
-              <label for="ownerLoginId" class="form-label">Owner ID / Username / Email *</label>
-              <input type="text" id="ownerLoginId" required class="form-control" placeholder="Enter your Owner ID" autocomplete="username">
-            </div>
-            <div class="form-group">
-              <label for="ownerLoginPassword" class="form-label">Master Password *</label>
-              <input type="password" id="ownerLoginPassword" required class="form-control" placeholder="Enter your password" autocomplete="current-password">
+              <label for="ownerLoginPassword" class="form-label">Enter Your Owner Password *</label>
+              <input type="password" id="ownerLoginPassword" required class="form-control" placeholder="Enter your secret password" autocomplete="current-password">
             </div>
             <button type="submit" class="btn btn-primary btn-block" style="padding:12px; font-weight:700;">
-              <i class="fa-solid fa-right-to-bracket"></i> Login to Owner Dashboard
+              <i class="fa-solid fa-unlock-keyhole"></i> Unlock Clinic Editor &amp; Dashboard
             </button>
             <div style="margin-top:12px; text-align:center; font-size:12px; color:#64748b;">
-              <i class="fa-solid fa-shield-cat"></i> Authorized Owner access only &bull; Direct access protected
+              <i class="fa-solid fa-shield-halved"></i> Protected &bull; Patients cannot edit your clinic details
             </div>
           </form>
         </div>
