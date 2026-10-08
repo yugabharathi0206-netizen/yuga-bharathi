@@ -23,10 +23,11 @@
   <!-- Top Announcement Bar -->
   <div class="announcement-bar">
     <div class="container">
-      <span><i class="fa-solid fa-clock"></i> Mon - Sat: 9:00 AM - 1:00 PM &amp; 5:00 PM - 9:00 PM</span>
+      <span><i class="fa-solid fa-clock"></i> <span id="topBarTimings">Mon - Sat: 9:00 AM - 1:00 PM &amp; 5:00 PM - 9:00 PM</span></span>
       <div class="quick-contact">
-        <a href="tel:+919876543210"><i class="fa-solid fa-phone"></i> +91 98765 43210</a>
-        <a href="https://wa.me/919876543210" target="_blank" class="wa-badge"><i class="fa-brands fa-whatsapp"></i> Chat on WhatsApp</a>
+        <a href="tel:+919876543210" id="topPhoneLink"><i class="fa-solid fa-phone"></i> <span id="topPhoneDisplay">+91 98765 43210</span></a>
+        <a href="https://wa.me/919876543210" target="_blank" class="wa-badge" id="topWaLink"><i class="fa-brands fa-whatsapp"></i> Chat on WhatsApp</a>
+        <a href="#admin" onclick="openOwnerPortal(); return false;" class="wa-badge" style="background:#0f766e;" title="Private Owner Login"><i class="fa-solid fa-lock"></i> Owner Portal</a>
       </div>
     </div>
   </div>
@@ -35,10 +36,10 @@
   <header class="navbar">
     <div class="container nav-container">
       <div class="brand">
-        <img src="homeo_app_icon.jpg" alt="HOMEo AI Logo" style="width:42px; height:42px; border-radius:12px; object-fit:cover; box-shadow:0 4px 12px rgba(13,148,136,0.25);">
+        <img src="homeo_app_icon.jpg" alt="Clinic Logo" style="width:42px; height:42px; border-radius:12px; object-fit:cover; box-shadow:0 4px 12px rgba(13,148,136,0.25);">
         <div class="brand-text">
-          <span class="brand-title">HOMEo AI <span class="badge-pro" style="background:#0d9488;">CLINIC</span></span>
-          <span class="brand-subtitle">Your health, our care.</span>
+          <span class="brand-title"><span id="navClinicTitle">SP Clinic</span> <span class="badge-pro" style="background:#0d9488;">HOMEo AI</span></span>
+          <span class="brand-subtitle" id="navClinicSubtitle">Your health, our care.</span>
         </div>
       </div>
 
@@ -48,8 +49,8 @@
         <a href="#doctor">Doctor Profile</a>
         <a href="#about">About Clinic</a>
         <a href="#contact">Contact</a>
-        <button class="btn btn-outline btn-sm" onclick="openAdminModal()">
-          <i class="fa-solid fa-user-shield"></i> Doctor Login
+        <button class="btn btn-outline btn-sm" onclick="openOwnerPortal()" title="Secure Owner Portal" style="font-size:12px;">
+          <i class="fa-solid fa-user-shield"></i> Owner Access
         </button>
         <button class="btn btn-primary btn-sm book-btn-nav" onclick="openBookingModal()">
           <i class="fa-solid fa-calendar-plus"></i> Book Appointment
@@ -69,7 +70,7 @@
       <a href="#doctor" onclick="toggleMobileMenu()">Doctor Profile</a>
       <a href="#about" onclick="toggleMobileMenu()">About Clinic</a>
       <a href="#contact" onclick="toggleMobileMenu()">Contact</a>
-      <a href="javascript:void(0)" onclick="openAdminModal(); toggleMobileMenu()">Doctor / Admin Login</a>
+      <a href="#admin" onclick="openOwnerPortal(); toggleMobileMenu()"><i class="fa-solid fa-lock"></i> Owner Portal</a>
       <div class="mobile-cta">
         <button class="btn btn-primary btn-block" onclick="openBookingModal(); toggleMobileMenu()">
           <i class="fa-solid fa-calendar-check"></i> Book Appointment Now
@@ -90,9 +91,9 @@
         <span style="color: #6ee7b7; font-size: 12px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase;">HOMEOPATHIC WELLNESS &amp; AI</span>
       </div>
 
-      <h1 style="font-size: 28px; font-weight: 800; color: #ffffff; margin: 0 0 8px; letter-spacing: -0.5px;">HOMEo AI Classical Clinic</h1>
-      <p style="font-size: 18px; color: #80deea; font-weight: 600; margin: 0 0 6px;">Your health, our care.</p>
-      <p style="font-size: 13px; color: #94a3b8; margin: 0 0 28px;">Digital Clinic Management &bull; Live Queue &bull; Classical Healing</p>
+      <h1 style="font-size: 28px; font-weight: 800; color: #ffffff; margin: 0 0 8px; letter-spacing: -0.5px;"><span id="welcomeClinicTitle">SP Clinic</span></h1>
+      <p style="font-size: 18px; color: #80deea; font-weight: 600; margin: 0 0 6px;"><span id="welcomeClinicSubtitle">HOMEo AI Classical Clinic • Your health, our care.</span></p>
+      <p style="font-size: 13px; color: #94a3b8; margin: 0 0 28px;"><span id="welcomeClinicDesc">Digital Clinic Management &bull; Live Queue &bull; Classical Healing</span></p>
 
       <div style="display: flex; flex-direction: column; gap: 12px; max-width: 380px; margin: 0 auto;">
         <!-- ENTER CLINIC -> Button -->
@@ -309,7 +310,7 @@
             <i class="fa-solid fa-map-pin"></i>
             <div>
               <strong>Clinic Address</strong>
-              <p>HOMEo Clinic Pro, 74 Gandhi Road, Near Central Park, Health Complex, Chennai - 600001</p>
+              <p id="contactAddressDisplay">SP Clinic, 74 Gandhi Road, Near Central Park, Health Complex, Chennai - 600001</p>
             </div>
           </div>
 
@@ -317,7 +318,7 @@
             <i class="fa-solid fa-phone"></i>
             <div>
               <strong>Telephone / Appointments</strong>
-              <p>+91 98765 43210 / 044-24589211</p>
+              <p id="contactPhoneDisplay">+91 98765 43210</p>
             </div>
           </div>
 
@@ -325,7 +326,7 @@
             <i class="fa-solid fa-envelope"></i>
             <div>
               <strong>Email Support</strong>
-              <p>care@homeoclinicpro.com</p>
+              <p id="contactEmailDisplay">care@spclinic.com</p>
             </div>
           </div>
 
@@ -333,7 +334,7 @@
             <i class="fa-solid fa-clock"></i>
             <div>
               <strong>Consulting Hours</strong>
-              <p>Morning: 09:00 AM – 01:00 PM<br>Evening: 05:00 PM – 09:00 PM (Sunday Evening Closed)</p>
+              <p id="contactHoursDisplay">Morning: 09:00 AM – 01:00 PM<br>Evening: 05:00 PM – 09:00 PM (Mon - Sat)</p>
             </div>
           </div>
         </div>
@@ -341,8 +342,8 @@
 
       <div class="contact-box">
         <h3>Have a Quick Question?</h3>
-        <p>Send a message directly to the clinic doctor on WhatsApp.</p>
-        <a href="https://wa.me/919876543210?text=Hello%20Doctor,%20I%20would%20like%20to%20inquire%20about%20a%20consultation" target="_blank" class="btn btn-whatsapp btn-block">
+        <p>Send a message directly to Dr. Balaji on WhatsApp.</p>
+        <a id="contactWhatsAppLink" href="https://wa.me/919876543210?text=Hello%20Doctor,%20I%20would%20like%20to%20inquire%20about%20a%20consultation" target="_blank" class="btn btn-whatsapp btn-block">
           <i class="fa-brands fa-whatsapp"></i> Chat on WhatsApp Now
         </a>
         <div class="mt-4">
@@ -360,20 +361,20 @@
       <div class="footer-brand">
         <div class="brand">
           <div class="brand-logo"><i class="fa-solid fa-seedling"></i></div>
-          <span class="brand-title">HOMEo Clinic <span class="badge-pro">PRO</span></span>
+          <span class="brand-title"><span id="footerClinicTitle">SP Clinic</span> <span class="badge-pro">PRO</span></span>
         </div>
-        <p>Compassionate, scientific homeopathic healing for the entire family.</p>
+        <p id="footerClinicDesc">Compassionate, scientific homeopathic healing for the entire family.</p>
       </div>
       <div class="footer-links">
         <a href="#home">Home</a>
         <a href="#services">Specialities</a>
         <a href="#doctor">Doctor Profile</a>
         <a href="#contact">Contact</a>
-        <a href="javascript:void(0)" onclick="openAdminModal()">Doctor Login</a>
+        <a href="#admin" onclick="openOwnerPortal(); return false;"><i class="fa-solid fa-lock"></i> Owner Portal</a>
       </div>
     </div>
     <div class="footer-bottom">
-      <p>&copy; 2026 HOMEo Clinic Pro. All Rights Reserved. Designed for patient ease and privacy.</p>
+      <p>&copy; 2026 <span id="footerCopyrightClinic">SP Clinic</span>. All Rights Reserved. Confidential Patient Care.</p>
     </div>
   </footer>
 
@@ -391,23 +392,23 @@
       <div class="modal-body">
         <form id="bookingForm" onsubmit="handleBookingSubmit(event)">
           <!-- Step 1: Mode of Consultation -->
-          <div class="form-group">
+          <div class="form-group" id="consultationModeGroup">
             <label class="form-label">Consultation Mode *</label>
-            <div class="radio-cards">
-              <label class="radio-card selected">
-                <input type="radio" name="consultationType" value="IN_CLINIC" checked onchange="updateRadioSelection(this)">
+            <div class="radio-cards" id="consultationRadioCards">
+              <label class="radio-card selected" id="radioCardInClinic">
+                <input type="radio" name="consultationType" id="radioInClinicInput" value="IN_CLINIC" checked onchange="updateRadioSelection(this)">
                 <div class="radio-content">
                   <i class="fa-solid fa-hospital-user"></i>
-                  <strong>In-Clinic Visit</strong>
-                  <span>At Clinic Chennai</span>
+                  <strong id="inClinicMainLabel">In-Clinic Visit</strong>
+                  <span id="inClinicSubText">At SP Clinic Chennai</span>
                 </div>
               </label>
-              <label class="radio-card">
-                <input type="radio" name="consultationType" value="ONLINE" onchange="updateRadioSelection(this)">
+              <label class="radio-card" id="radioCardOnline">
+                <input type="radio" name="consultationType" id="radioOnlineInput" value="ONLINE" onchange="updateRadioSelection(this)">
                 <div class="radio-content">
                   <i class="fa-solid fa-video"></i>
-                  <strong>Online Video</strong>
-                  <span>WhatsApp Video Call</span>
+                  <strong id="onlineMainLabel">Online Video Consultation</strong>
+                  <span id="onlineSubText">WhatsApp Video Call</span>
                 </div>
               </label>
             </div>
@@ -577,46 +578,109 @@
     </div>
   </div>
 
-  <!-- ================= OWNER / ADMIN SECURE LOGIN MODAL ================= -->
+  <!-- ================= OWNER / ADMIN SECURE PORTAL MODAL ================= -->
   <div class="modal-overlay" id="adminModal">
-    <div class="modal-card modal-sm">
+    <div class="modal-card modal-sm" id="adminModalCard">
       <div class="modal-header">
         <div>
-          <h3 class="modal-title"><i class="fa-solid fa-lock"></i> Doctor / Admin Login</h3>
-          <p class="modal-subtitle">Private Clinic Management Portal</p>
+          <h3 class="modal-title" id="adminModalTitle"><i class="fa-solid fa-user-shield"></i> Owner Access Portal</h3>
+          <p class="modal-subtitle" id="adminModalSubtitle">SP Clinic Private Administration</p>
         </div>
         <button class="close-btn" onclick="closeAdminModal()">&times;</button>
       </div>
 
       <div class="modal-body">
-        <div id="adminLoginForm">
-          <div class="form-group">
-            <label for="adminEmail" class="form-label">Owner / Doctor Email or Phone</label>
-            <input type="text" id="adminEmail" class="form-control" placeholder="yugabharathi0206@gmail.com">
+        <!-- 1. FIRST-TIME OWNER SETUP FORM (Only shown if owner credentials have not been created yet) -->
+        <div id="ownerSetupView" style="display:none;">
+          <div class="auth-alert auth-alert-success" style="margin-bottom:14px;">
+            <i class="fa-solid fa-shield-halved"></i>
+            <div>
+              <strong>Owner Initialization:</strong> Set your private Owner ID and Master Password. Only you will have access to manage the clinic.
+            </div>
           </div>
-          <div class="form-group">
-            <label for="adminPassword" class="form-label">PIN / Password</label>
-            <input type="password" id="adminPassword" class="form-control" placeholder="Enter owner password">
-            <small style="color:#64748b; margin-top:4px; display:block;">Default initial owner PIN: <code>admin123</code></small>
-          </div>
-          <button class="btn btn-primary btn-block" onclick="handleAdminLogin()">
-            <i class="fa-solid fa-right-to-bracket"></i> Login to Clinic Dashboard
-          </button>
+          <form id="ownerSetupForm" onsubmit="handleOwnerSetup(event)">
+            <div class="form-group">
+              <label for="setupOwnerId" class="form-label">Create Owner ID / Username / Email *</label>
+              <input type="text" id="setupOwnerId" required class="form-control" placeholder="e.g. balaji_owner or admin@spclinic.com" autocomplete="username">
+            </div>
+            <div class="form-group">
+              <label for="setupOwnerPassword" class="form-label">Create Master Password *</label>
+              <input type="password" id="setupOwnerPassword" required minlength="6" class="form-control" placeholder="Minimum 6 characters" autocomplete="new-password">
+            </div>
+            <div class="form-group">
+              <label for="setupOwnerPasswordConfirm" class="form-label">Confirm Master Password *</label>
+              <input type="password" id="setupOwnerPasswordConfirm" required minlength="6" class="form-control" placeholder="Re-enter master password" autocomplete="new-password">
+            </div>
+            <div id="setupErrorMsg" class="auth-alert auth-alert-error" style="display:none;"></div>
+            <button type="submit" class="btn btn-primary btn-block" style="padding:12px; font-weight:700;">
+              <i class="fa-solid fa-lock"></i> Set Credentials &amp; Open Owner Dashboard
+            </button>
+            <p style="font-size:11px; color:#64748b; margin-top:10px; text-align:center;">
+              <i class="fa-solid fa-circle-info"></i> Once created, no other admin account can ever be registered. Only this Owner account can sign in.
+            </p>
+          </form>
         </div>
 
-        <!-- Admin Logged In View -->
+        <!-- 2. OWNER LOGIN FORM (Shown when credentials exist and owner is not logged in) -->
+        <div id="ownerLoginView">
+          <div id="loginErrorMsg" class="auth-alert auth-alert-error" style="display:none;">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <span id="loginErrorText">Invalid Owner ID or Password.</span>
+          </div>
+          <form id="ownerLoginForm" onsubmit="handleOwnerLogin(event)">
+            <div class="form-group">
+              <label for="ownerLoginId" class="form-label">Owner ID / Username / Email *</label>
+              <input type="text" id="ownerLoginId" required class="form-control" placeholder="Enter your Owner ID" autocomplete="username">
+            </div>
+            <div class="form-group">
+              <label for="ownerLoginPassword" class="form-label">Master Password *</label>
+              <input type="password" id="ownerLoginPassword" required class="form-control" placeholder="Enter your password" autocomplete="current-password">
+            </div>
+            <button type="submit" class="btn btn-primary btn-block" style="padding:12px; font-weight:700;">
+              <i class="fa-solid fa-right-to-bracket"></i> Login to Owner Dashboard
+            </button>
+            <div style="margin-top:12px; text-align:center; font-size:12px; color:#64748b;">
+              <i class="fa-solid fa-shield-cat"></i> Authorized Owner access only &bull; Direct access protected
+            </div>
+          </form>
+        </div>
+
+        <!-- 3. OWNER DASHBOARD VIEW (Shown only when Owner is authenticated) -->
         <div id="adminDashboardView" style="display:none;">
+          <!-- Header Bar with Owner Info and Quick Logout -->
+          <div class="admin-header-row">
+            <div>
+              <span class="admin-owner-badge">
+                <i class="fa-solid fa-circle-check"></i> Logged in as Owner: <strong id="activeOwnerDisplay">-</strong>
+              </span>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <button class="btn btn-secondary btn-sm" onclick="handleOwnerLogout()" title="Logout of Owner Dashboard">
+                <i class="fa-solid fa-right-from-bracket"></i> Logout
+              </button>
+            </div>
+          </div>
+
           <!-- Navigation Tabs -->
-          <div style="display:flex; border-bottom:2px solid #e2e8f0; margin-bottom:16px;">
-            <button id="adminTabApptsBtn" class="btn btn-sm" onclick="switchAdminTab('appts')" style="flex:1; border-radius:0; border-bottom:3px solid #0d9488; font-weight:700; color:#0d9488; background:transparent;">
+          <div class="admin-tabs-nav">
+            <button id="adminTabApptsBtn" class="admin-tab-nav-btn active" onclick="switchAdminTab('appts')">
               <i class="fa-solid fa-calendar-check"></i> Bookings Queue
             </button>
-            <button id="adminTabProfileBtn" class="btn btn-sm" onclick="switchAdminTab('profile')" style="flex:1; border-radius:0; font-weight:600; color:#64748b; background:transparent;">
-              <i class="fa-solid fa-user-pen"></i> Edit Doctor Profile &amp; Picture
+            <button id="adminTabSlotsBtn" class="admin-tab-nav-btn" onclick="switchAdminTab('slots')">
+              <i class="fa-solid fa-clock"></i> Manage Slots
+            </button>
+            <button id="adminTabProfileBtn" class="admin-tab-nav-btn" onclick="switchAdminTab('profile')">
+              <i class="fa-solid fa-user-doctor"></i> Doctor Profile
+            </button>
+            <button id="adminTabClinicBtn" class="admin-tab-nav-btn" onclick="switchAdminTab('clinic')">
+              <i class="fa-solid fa-hospital"></i> Clinic &amp; Website
+            </button>
+            <button id="adminTabSecurityBtn" class="admin-tab-nav-btn" onclick="switchAdminTab('security')">
+              <i class="fa-solid fa-shield-halved"></i> Security &amp; PIN
             </button>
           </div>
 
-          <!-- Tab 1: Bookings Queue View -->
+          <!-- TAB 1: BOOKINGS QUEUE -->
           <div id="adminApptsTabContent">
             <div class="admin-top-stats">
               <div class="admin-stat-chip">
@@ -625,23 +689,26 @@
               </div>
               <div class="admin-stat-chip">
                 <span id="statPendingAppointments" style="color:#d97706">0</span>
-                <small>Pending</small>
+                <small>Pending Approval</small>
               </div>
               <div class="admin-stat-chip">
                 <span id="statConfirmedAppointments" style="color:#059669">0</span>
-                <small>Accepted</small>
+                <small>Confirmed / Active</small>
               </div>
             </div>
 
             <div class="admin-filter-bar">
-              <input type="text" id="adminSearchInput" placeholder="Search patient name or phone..." class="form-control form-control-sm" oninput="filterAdminAppointments()">
+              <input type="text" id="adminSearchInput" placeholder="Search patient name, phone, ticket ID..." class="form-control form-control-sm" oninput="filterAdminAppointments()">
               <select id="adminStatusFilter" class="form-control form-control-sm" onchange="filterAdminAppointments()">
                 <option value="ALL">All Status</option>
                 <option value="PENDING">Pending Approval</option>
-                <option value="CONFIRMED">Accepted / Confirmed</option>
+                <option value="CONFIRMED">Confirmed</option>
                 <option value="COMPLETED">Completed</option>
                 <option value="CANCELLED">Rejected / Cancelled</option>
               </select>
+              <button class="btn btn-outline btn-sm" onclick="exportAppointmentsCSV()" title="Export Bookings to CSV">
+                <i class="fa-solid fa-file-excel"></i> Export CSV
+              </button>
             </div>
 
             <div class="appointments-list-container" id="adminAppointmentsList">
@@ -649,8 +716,59 @@
             </div>
           </div>
 
-          <!-- Tab 2: Edit Doctor Profile & Picture View -->
-          <div id="adminProfileTabContent" style="display:none; padding:10px 0;">
+          <!-- TAB 2: MANAGE SLOTS & TIMINGS -->
+          <div id="adminSlotsTabContent" style="display:none; padding:6px 0;">
+            <div class="admin-card-section">
+              <h4 style="font-size:15px; margin-bottom:6px;"><i class="fa-solid fa-clock"></i> Available Consultation Time Slots</h4>
+              <p style="font-size:12px; color:#64748b; margin-bottom:12px;">
+                Add or remove consultation slots. These slots will appear immediately in the public patient booking form.
+              </p>
+
+              <div class="form-row" style="margin-bottom:12px;">
+                <div class="form-group col-8" style="margin-bottom:0;">
+                  <input type="text" id="newSlotInput" class="form-control" placeholder="e.g. 04:30 PM - 05:00 PM">
+                </div>
+                <div class="form-group col-4" style="margin-bottom:0;">
+                  <button class="btn btn-primary btn-block" onclick="handleAddSlot()" style="height:100%;">
+                    <i class="fa-solid fa-plus"></i> Add Slot
+                  </button>
+                </div>
+              </div>
+
+              <div class="slots-grid" id="adminSlotsListContainer">
+                <!-- Dynamic slot tags with remove button -->
+              </div>
+
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-top:14px; border-top:1px dashed var(--border); padding-top:12px;">
+                <button class="btn btn-outline btn-sm" onclick="resetSlotsToDefault()">
+                  <i class="fa-solid fa-arrow-rotate-left"></i> Reset to Standard Slots
+                </button>
+                <button class="btn btn-primary btn-sm" onclick="saveSlotsConfiguration()">
+                  <i class="fa-solid fa-floppy-disk"></i> Save Slots Configuration
+                </button>
+              </div>
+            </div>
+
+            <div class="admin-card-section">
+              <h4 style="font-size:15px; margin-bottom:6px;"><i class="fa-solid fa-calendar-days"></i> Booking Days Window</h4>
+              <div class="form-row">
+                <div class="form-group col-6">
+                  <label class="form-label">Advance Booking Horizon (Days)</label>
+                  <input type="number" id="editAdvanceDays" class="form-control" min="1" max="90" value="30">
+                </div>
+                <div class="form-group col-6">
+                  <label class="form-label">Consulting Days</label>
+                  <input type="text" id="editConsultingDays" class="form-control" value="Monday - Saturday (Sunday Closed)">
+                </div>
+              </div>
+            </div>
+            <div id="slotsSaveMsg" class="auth-alert auth-alert-success" style="display:none;">
+              ✓ Appointment slots updated and synced with public website!
+            </div>
+          </div>
+
+          <!-- TAB 3: DOCTOR PROFILE -->
+          <div id="adminProfileTabContent" style="display:none; padding:6px 0;">
             <div class="form-group">
               <label class="form-label">Doctor Name *</label>
               <input type="text" id="editDoctorName" class="form-control" value="Dr. Balaji" placeholder="e.g. Dr. Balaji">
@@ -658,52 +776,154 @@
             <div class="form-row">
               <div class="form-group col-6">
                 <label class="form-label">Qualifications</label>
-                <input type="text" id="editDoctorQual" class="form-control" value="BHMS, MD (Homeopathy)" placeholder="e.g. BHMS, MD (Homeopathy)">
+                <input type="text" id="editDoctorQual" class="form-control" value="BHMS, MD (Homeopathy)">
               </div>
               <div class="form-group col-6">
                 <label class="form-label">Consultation Fee (₹)</label>
-                <input type="number" id="editDoctorFee" class="form-control" value="500" placeholder="500">
+                <input type="number" id="editDoctorFee" class="form-control" value="500">
               </div>
             </div>
             <div class="form-group">
               <label class="form-label">Speciality</label>
-              <input type="text" id="editDoctorSpec" class="form-control" value="Classical Constitutional Homeopathy" placeholder="e.g. Classical Constitutional Homeopathy">
+              <input type="text" id="editDoctorSpec" class="form-control" value="Classical Constitutional Homeopathy">
             </div>
             <div class="form-group">
-              <label class="form-label">Clinic Phone / WhatsApp Number *</label>
-              <input type="tel" id="editDoctorPhone" class="form-control" value="+919876543210" placeholder="+919876543210">
+              <label class="form-label">Doctor Bio / Experience Details</label>
+              <textarea id="editDoctorBio" class="form-control" rows="3" placeholder="Brief doctor bio for patient confidence">Dr. Balaji specializes in individualized Classical Constitutional Homeopathy, combining deep repertorisation with gentle holistic remedies to treat root causes without side effects.</textarea>
             </div>
             <div class="form-group">
-              <label class="form-label">Doctor Picture (Upload Photo from Device)</label>
+              <label class="form-label">Doctor Photo (Upload Photo or Enter URL)</label>
               <input type="file" id="editDoctorPicFile" accept="image/*" class="form-control" onchange="previewDoctorPhoto(this)">
               <div style="margin-top:6px;">
-                <label class="form-label" style="font-size:11px; color:#64748b;">Or Image URL:</label>
-                <input type="text" id="editDoctorPicUrl" class="form-control form-control-sm" placeholder="https://example.com/photo.jpg" onchange="previewDoctorPhotoUrl(this.value)">
+                <input type="text" id="editDoctorPicUrl" class="form-control form-control-sm" placeholder="Or paste image URL" onchange="previewDoctorPhotoUrl(this.value)">
               </div>
-              <div style="display:flex; align-items:center; gap:16px; margin-top:12px; background:#f8fafc; padding:10px; border-radius:10px;">
+              <div style="display:flex; align-items:center; gap:16px; margin-top:12px; background:#f8fafc; padding:10px; border-radius:10px; border:1px solid var(--border);">
                 <img id="editDoctorPicPreview" src="doctor_portrait.jpg" alt="Doctor Preview" style="width:72px; height:84px; object-fit:cover; border-radius:10px; border:2px solid #0d9488;">
                 <div>
-                  <strong style="font-size:13px; color:#0f172a; display:block;">Current Picture Preview</strong>
-                  <span style="font-size:12px; color:#64748b;">This photo will display on the web profile and cards.</span>
+                  <strong style="font-size:13px; color:#0f172a; display:block;">Active Doctor Picture</strong>
+                  <span style="font-size:12px; color:#64748b;">This photo displays on public website cards and tickets.</span>
                 </div>
               </div>
             </div>
-            <button class="btn btn-primary btn-block" onclick="saveClinicProfile()" style="margin-top:16px;">
-              <i class="fa-solid fa-floppy-disk"></i> Save Changes &amp; Update Website
+            <button class="btn btn-primary btn-block" onclick="saveDoctorProfile()" style="margin-top:14px; padding:12px; font-weight:700;">
+              <i class="fa-solid fa-floppy-disk"></i> Save Doctor Profile &amp; Update Website
             </button>
-            <div id="profileSaveMsg" style="display:none; color:#059669; font-weight:700; font-size:13px; text-align:center; margin-top:8px;">
-              ✓ Doctor profile and picture updated successfully!
+            <div id="profileSaveMsg" class="auth-alert auth-alert-success" style="display:none; margin-top:10px;">
+              ✓ Doctor profile and picture updated successfully on public website!
             </div>
           </div>
 
-          <div class="admin-footer-actions">
-            <button class="btn btn-outline btn-sm" onclick="exportAppointmentsCSV()">
-              <i class="fa-solid fa-file-excel"></i> Export CSV
+          <!-- TAB 4: CLINIC DETAILS & CONTENT -->
+          <div id="adminClinicTabContent" style="display:none; padding:6px 0;">
+            <div class="form-group">
+              <label class="form-label">Clinic Name *</label>
+              <input type="text" id="editClinicName" class="form-control" value="SP Clinic" placeholder="e.g. SP Clinic">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Clinic Tagline / Subtitle</label>
+              <input type="text" id="editClinicTagline" class="form-control" value="HOMEo AI Classical Clinic • Your health, our care.">
+            </div>
+            <div class="form-row">
+              <div class="form-group col-6">
+                <label class="form-label">Clinic Phone Number *</label>
+                <input type="tel" id="editClinicPhone" class="form-control" value="+91 98765 43210">
+              </div>
+              <div class="form-group col-6">
+                <label class="form-label">Contact / Support Email</label>
+                <input type="email" id="editClinicEmail" class="form-control" value="care@spclinic.com">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Clinic Address *</label>
+              <textarea id="editClinicAddress" class="form-control" rows="2">SP Clinic, 74 Gandhi Road, Near Central Park, Health Complex, Chennai - 600001</textarea>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Consulting Hours Text</label>
+              <input type="text" id="editClinicHours" class="form-control" value="Morning: 09:00 AM – 01:00 PM | Evening: 05:00 PM – 09:00 PM (Mon - Sat)">
+            </div>
+
+            <!-- Consultation Mode Toggles -->
+            <div class="admin-card-section" style="margin-top:14px;">
+              <h4 style="font-size:15px; margin-bottom:10px;"><i class="fa-solid fa-sliders"></i> Consultation Mode Options</h4>
+              <label class="toggle-switch-label">
+                <div>
+                  <strong>In-Clinic / Offline Consultations</strong>
+                  <div style="font-size:12px; color:#64748b;">Allow patients to book in-person visits at clinic.</div>
+                </div>
+                <input type="checkbox" id="editInClinicEnabled" checked>
+              </label>
+              <label class="toggle-switch-label">
+                <div>
+                  <strong>Online Video Consultations</strong>
+                  <div style="font-size:12px; color:#64748b;">Allow patients to book remote video consultations (WhatsApp Video).</div>
+                </div>
+                <input type="checkbox" id="editOnlineEnabled" checked>
+              </label>
+            </div>
+
+            <button class="btn btn-primary btn-block" onclick="saveClinicDetails()" style="margin-top:14px; padding:12px; font-weight:700;">
+              <i class="fa-solid fa-floppy-disk"></i> Save Clinic Settings &amp; Update Website
             </button>
-            <button class="btn btn-secondary btn-sm" onclick="handleAdminLogout()">
-              <i class="fa-solid fa-right-from-bracket"></i> Logout
-            </button>
+            <div id="clinicSaveMsg" class="auth-alert auth-alert-success" style="display:none; margin-top:10px;">
+              ✓ Clinic information and settings updated on public website!
+            </div>
           </div>
+
+          <!-- TAB 5: SECURITY & OWNER ACCOUNT -->
+          <div id="adminSecurityTabContent" style="display:none; padding:6px 0;">
+            <div class="admin-card-section">
+              <h4 style="font-size:15px; margin-bottom:8px;"><i class="fa-solid fa-user-lock"></i> Change Owner ID / Username</h4>
+              <form id="changeOwnerIdForm" onsubmit="handleChangeOwnerId(event)">
+                <div class="form-group">
+                  <label class="form-label">Current Master Password *</label>
+                  <input type="password" id="changeIdCurrentPassword" required class="form-control" placeholder="Verify your current password">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">New Owner ID / Email *</label>
+                  <input type="text" id="newOwnerIdInput" required class="form-control" placeholder="Enter new Owner ID">
+                </div>
+                <button type="submit" class="btn btn-outline btn-block">
+                  <i class="fa-solid fa-id-card"></i> Update Owner ID
+                </button>
+              </form>
+              <div id="changeIdMsg" style="display:none; margin-top:10px;"></div>
+            </div>
+
+            <div class="admin-card-section">
+              <h4 style="font-size:15px; margin-bottom:8px;"><i class="fa-solid fa-key"></i> Change Master Password</h4>
+              <form id="changePasswordForm" onsubmit="handleChangePassword(event)">
+                <div class="form-group">
+                  <label class="form-label">Current Master Password *</label>
+                  <input type="password" id="currentPasswordInput" required class="form-control" placeholder="Verify current password">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">New Master Password *</label>
+                  <input type="password" id="newPasswordInput" required minlength="6" class="form-control" placeholder="Minimum 6 characters">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Confirm New Password *</label>
+                  <input type="password" id="confirmNewPasswordInput" required minlength="6" class="form-control" placeholder="Re-enter new password">
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">
+                  <i class="fa-solid fa-shield"></i> Update Master Password
+                </button>
+              </form>
+              <div id="changePassMsg" style="display:none; margin-top:10px;"></div>
+            </div>
+
+            <div style="text-align:center; padding:12px; background:#fff1f2; border:1px solid #fecdd3; border-radius:10px; margin-top:12px;">
+              <strong style="color:#be123c; font-size:13px; display:block; margin-bottom:6px;">
+                <i class="fa-solid fa-right-from-bracket"></i> End Owner Session
+              </strong>
+              <p style="font-size:12px; color:#881337; margin-bottom:10px;">
+                Sign out of this browser. The Owner Dashboard will be immediately locked.
+              </p>
+              <button class="btn btn-secondary btn-sm" onclick="handleOwnerLogout()" style="background:#be123c; color:#fff; border-color:#be123c;">
+                Secure Logout Now
+              </button>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>

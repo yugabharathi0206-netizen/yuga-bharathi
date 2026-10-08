@@ -1,26 +1,148 @@
 /**
- * HOMEO CLINIC PRO - CLIENT & ADMIN WEB APPLICATION LOGIC
+ * SP CLINIC / HOMEO AI CLASSICAL CLINIC
+ * SECURE OWNER DASHBOARD & CLIENT APPOINTMENT BOOKING PORTAL
  */
 
-// Clinic Configuration
-const CLINIC_INFO = {
-  name: "HOMEo AI Classical Clinic",
-  doctor: "Dr. Balaji",
-  qualification: "BHMS, MD (Homeopathy)",
-  phone: "+919876543210",
+// Master Clinic Default Data
+const DEFAULT_CLINIC_DATA = {
+  clinicName: "SP Clinic",
+  clinicSubtitle: "HOMEo AI Classical Clinic • Your health, our care.",
+  doctorName: "Dr. Balaji",
+  doctorQualification: "BHMS, MD (Homeopathy)",
+  doctorSpeciality: "Classical Constitutional Homeopathy",
+  doctorBio: "Dr. Balaji specializes in individualized Classical Constitutional Homeopathy, combining deep repertorisation with gentle holistic remedies to treat chronic and acute ailments safely with zero side effects.",
+  phone: "+91 98765 43210",
   cleanPhone: "919876543210",
-  fee: 500
+  address: "SP Clinic, 74 Gandhi Road, Near Central Park, Health Complex, Chennai - 600001",
+  email: "care@spclinic.com",
+  consultingHours: "Morning: 09:00 AM – 01:00 PM | Evening: 05:00 PM – 09:00 PM (Mon - Sat)",
+  fee: 500,
+  doctorPhoto: "doctor_portrait.jpg",
+  inClinicEnabled: true,
+  onlineEnabled: true,
+  inClinicLabel: "In-Clinic Visit",
+  onlineLabel: "Online Video Consultation",
+  slots: [
+    "09:30 AM - 10:00 AM",
+    "10:00 AM - 10:30 AM",
+    "10:30 AM - 11:00 AM",
+    "11:00 AM - 11:30 AM",
+    "11:30 AM - 12:00 PM",
+    "12:00 PM - 12:30 PM",
+    "05:00 PM - 05:30 PM",
+    "05:30 PM - 06:00 PM",
+    "06:00 PM - 06:30 PM",
+    "06:30 PM - 07:00 PM",
+    "07:00 PM - 07:30 PM",
+    "07:30 PM - 08:00 PM",
+    "08:00 PM - 08:30 PM"
+  ],
+  advanceDays: 30,
+  consultingDays: "Monday - Saturday (Sunday Closed)"
 };
 
 // Storage Keys
 const STORAGE_KEYS = {
   APPOINTMENTS: "homeo_clinic_appointments",
-  ADMIN_PIN: "homeo_clinic_admin_pin",
-  ADMIN_SESSION: "homeo_clinic_admin_logged_in",
-  PROFILE: "homeo_clinic_profile"
+  OWNER_AUTH: "sp_clinic_owner_auth",       // Salted cryptographic hash of Owner credentials
+  OWNER_SESSION: "sp_clinic_owner_session", // Active owner session token
+  CLINIC_DATA: "sp_clinic_master_data"      // Master clinic settings and profile
 };
 
-// Default Sample Seed Data if first time opening
+// Runtime Clinic State
+let CLINIC_DATA = { ...DEFAULT_CLINIC_DATA };
+let currentBooking = null;
+let uploadedDoctorPhotoBase64 = null;
+
+// ================= CRYPTOGRAPHIC HELPERS =================
+async function hashCredential(text, salt) {
+  const normalized = (text || "").trim();
+  if (typeof window !== "undefined" && window.crypto && crypto.subtle) {
+    try {
+      const enc = new TextEncoder();
+      const data = enc.encode(`${normalized}::${salt}::SP_CLINIC_AUTH_SALT_2026`);
+      const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+      return Array.from(new Uint8Array(hashBuffer))
+        .map(b => b.toString(16).padStart(2, "0"))
+        .join("");
+    } catch (e) {
+      console.warn("Crypto subtle fallback", e);
+    }
+  }
+  // Deterministic fallback for environments without crypto.subtle
+  let hash = 5381;
+  const str = `${normalized}::${salt}::SP_CLINIC`;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) + hash) + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return "hash_" + Math.abs(hash).toString(16);
+}
+
+function generateSecureSalt() {
+  if (typeof window !== "undefined" && window.crypto && crypto.getRandomValues) {
+    const arr = new Uint8Array(16);
+    crypto.getRandomValues(arr);
+    return Array.from(arr).map(b => b.toString(16).padStart(2, "0")).join("");
+  }
+  return Math.random().toString(36).substring(2) + Date.now().toString(36);
+}
+
+// ================= OWNER AUTHENTICATION STATE =================
+function getStoredOwnerAuth() {
+  try {
+    if (typeof localStorage === "undefined") return null;
+    const raw = localStorage.getItem(STORAGE_KEYS.OWNER_AUTH);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function isOwnerSetupComplete() {
+  const auth = getStoredOwnerAuth();
+  return Boolean(auth && auth.isSetupComplete && auth.ownerIdHash && auth.passwordHash);
+}
+
+function isOwnerAuthenticated() {
+  try {
+    if (typeof sessionStorage === "undefined") return false;
+    const raw = sessionStorage.getItem(STORAGE_KEYS.OWNER_SESSION);
+    if (!raw) return false;
+    const session = JSON.parse(raw);
+    if (!session || !session.token || !session.expiresAt) return false;
+    if (Date.now() > session.expiresAt) {
+      sessionStorage.removeItem(STORAGE_KEYS.OWNER_SESSION);
+      return false;
+    }
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+function getActiveOwnerId() {
+  try {
+    if (typeof sessionStorage === "undefined") return "Owner";
+    const raw = sessionStorage.getItem(STORAGE_KEYS.OWNER_SESSION);
+    if (!raw) return "Owner";
+    const session = JSON.parse(raw);
+    return session.ownerId || "Owner";
+  } catch (e) {
+    return "Owner";
+  }
+}
+
+function requireOwnerAuth() {
+  if (!isOwnerAuthenticated()) {
+    console.error("Blocked unauthorized attempt to execute owner operation.");
+    alert("Access Denied: Owner authorization required for this action.");
+    openOwnerPortal();
+    throw new Error("Unauthorized: Owner access required.");
+  }
+}
+
+// ================= APPOINTMENTS DATA LAYER =================
 function getStoredAppointments() {
   try {
     if (typeof localStorage === "undefined") return [];
@@ -60,17 +182,171 @@ function saveAppointments(appts) {
   }
 }
 
-// Current latest booked appointment
-let currentBooking = null;
+// ================= CLINIC DATA LAYER =================
+function loadClinicData() {
+  try {
+    if (typeof localStorage === "undefined") return;
+    const raw = localStorage.getItem(STORAGE_KEYS.CLINIC_DATA);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      CLINIC_DATA = { ...DEFAULT_CLINIC_DATA, ...parsed };
+    }
+  } catch (e) {
+    console.warn("Error loading clinic data", e);
+  }
+  applyClinicDataToDOM();
+}
 
-// ================= INITIALIZATION =================
+function saveClinicData() {
+  requireOwnerAuth();
+  try {
+    if (typeof localStorage === "undefined") return;
+    localStorage.setItem(STORAGE_KEYS.CLINIC_DATA, JSON.stringify(CLINIC_DATA));
+  } catch (e) {
+    console.error("Error saving clinic data", e);
+  }
+  applyClinicDataToDOM();
+}
+
+function applyClinicDataToDOM() {
+  // Update Clinic Title & Subtitles
+  const navTitle = document.getElementById("navClinicTitle");
+  if (navTitle) navTitle.textContent = CLINIC_DATA.clinicName;
+
+  const navSubtitle = document.getElementById("navClinicSubtitle");
+  if (navSubtitle) navSubtitle.textContent = CLINIC_DATA.clinicSubtitle;
+
+  const welcomeTitle = document.getElementById("welcomeClinicTitle");
+  if (welcomeTitle) welcomeTitle.textContent = CLINIC_DATA.clinicName;
+
+  const welcomeSubtitle = document.getElementById("welcomeClinicSubtitle");
+  if (welcomeSubtitle) welcomeSubtitle.textContent = CLINIC_DATA.clinicSubtitle;
+
+  const welcomeDesc = document.getElementById("welcomeClinicDesc");
+  if (welcomeDesc) welcomeDesc.textContent = CLINIC_DATA.doctorSpeciality;
+
+  const footerTitle = document.getElementById("footerClinicTitle");
+  if (footerTitle) footerTitle.textContent = CLINIC_DATA.clinicName;
+
+  const footerCopyright = document.getElementById("footerCopyrightClinic");
+  if (footerCopyright) footerCopyright.textContent = CLINIC_DATA.clinicName;
+
+  // Update Doctor details
+  document.querySelectorAll(".doc-name").forEach(el => el.textContent = CLINIC_DATA.doctorName);
+  const docH2 = document.querySelector("#doctor h2");
+  if (docH2) docH2.textContent = CLINIC_DATA.doctorName;
+
+  const qualP = document.querySelector(".doc-qualification");
+  if (qualP) qualP.textContent = `${CLINIC_DATA.doctorQualification} • ${CLINIC_DATA.doctorSpeciality}`;
+
+  const docDescP = document.querySelector(".doc-bio, #doctor .doc-info p");
+  if (docDescP && CLINIC_DATA.doctorBio) docDescP.textContent = CLINIC_DATA.doctorBio;
+
+  // Update Doctor Photos
+  if (CLINIC_DATA.doctorPhoto) {
+    document.querySelectorAll("img[alt*='Dr.'], img[alt*='Doctor'], .doc-avatar img").forEach(img => {
+      img.src = CLINIC_DATA.doctorPhoto;
+    });
+    const preview = document.getElementById("editDoctorPicPreview");
+    if (preview) preview.src = CLINIC_DATA.doctorPhoto;
+  }
+
+  // Update Consultation Fee
+  document.querySelectorAll(".fee-amount").forEach(el => el.textContent = `₹${CLINIC_DATA.fee}`);
+
+  // Update Contact Info
+  const phoneDisplay = CLINIC_DATA.phone || "+91 98765 43210";
+  const cleanPhone = (CLINIC_DATA.cleanPhone || phoneDisplay.replace(/\D/g, "")).slice(-10);
+
+  const topPhoneDisplay = document.getElementById("topPhoneDisplay");
+  if (topPhoneDisplay) topPhoneDisplay.textContent = phoneDisplay;
+
+  const topPhoneLink = document.getElementById("topPhoneLink");
+  if (topPhoneLink) topPhoneLink.href = `tel:+91${cleanPhone}`;
+
+  const topWaLink = document.getElementById("topWaLink");
+  if (topWaLink) topWaLink.href = `https://wa.me/91${cleanPhone}`;
+
+  const topBarTimings = document.getElementById("topBarTimings");
+  if (topBarTimings) topBarTimings.textContent = CLINIC_DATA.consultingHours;
+
+  const heroCall = document.getElementById("heroCallClinicBtn");
+  if (heroCall) {
+    heroCall.href = `tel:+91${cleanPhone}`;
+    heroCall.innerHTML = `<i class="fa-solid fa-phone-volume"></i> Call Clinic (${phoneDisplay})`;
+  }
+
+  const contactAddress = document.getElementById("contactAddressDisplay");
+  if (contactAddress) contactAddress.textContent = CLINIC_DATA.address;
+
+  const contactPhone = document.getElementById("contactPhoneDisplay");
+  if (contactPhone) contactPhone.textContent = phoneDisplay;
+
+  const contactEmail = document.getElementById("contactEmailDisplay");
+  if (contactEmail) contactEmail.textContent = CLINIC_DATA.email;
+
+  const contactHours = document.getElementById("contactHoursDisplay");
+  if (contactHours) contactHours.textContent = CLINIC_DATA.consultingHours;
+
+  const contactWhatsApp = document.getElementById("contactWhatsAppLink");
+  if (contactWhatsApp) contactWhatsApp.href = `https://wa.me/91${cleanPhone}?text=Hello%20${encodeURIComponent(CLINIC_DATA.doctorName)},%20I%20would%20like%20to%20inquire%20about%20a%20consultation%20at%20${encodeURIComponent(CLINIC_DATA.clinicName)}`;
+
+  // Update In-Clinic & Online Consultation mode visibility in public booking form
+  const inClinicRadio = document.getElementById("radioCardInClinic");
+  const onlineRadio = document.getElementById("radioCardOnline");
+  const inClinicInput = document.getElementById("radioInClinicInput");
+  const onlineInput = document.getElementById("radioOnlineInput");
+
+  if (inClinicRadio && onlineRadio) {
+    inClinicRadio.style.display = CLINIC_DATA.inClinicEnabled ? "flex" : "none";
+    onlineRadio.style.display = CLINIC_DATA.onlineEnabled ? "flex" : "none";
+
+    // Auto-select the active available mode
+    if (!CLINIC_DATA.inClinicEnabled && CLINIC_DATA.onlineEnabled && inClinicInput && onlineInput) {
+      onlineInput.checked = true;
+      inClinicRadio.classList.remove("selected");
+      onlineRadio.classList.add("selected");
+    } else if (CLINIC_DATA.inClinicEnabled && inClinicInput) {
+      inClinicInput.checked = true;
+      inClinicRadio.classList.add("selected");
+      onlineRadio.classList.remove("selected");
+    }
+  }
+
+  // Populate slots in public booking modal
+  renderSlotsInBookingForm();
+}
+
+function renderSlotsInBookingForm() {
+  const timeSelect = document.getElementById("bookTime");
+  if (!timeSelect) return;
+
+  const currentVal = timeSelect.value;
+  timeSelect.innerHTML = "";
+
+  const slots = (CLINIC_DATA.slots && CLINIC_DATA.slots.length > 0)
+    ? CLINIC_DATA.slots
+    : DEFAULT_CLINIC_DATA.slots;
+
+  slots.forEach((slot, idx) => {
+    const opt = document.createElement("option");
+    opt.value = slot;
+    opt.textContent = slot;
+    if (idx === 0 || slot === currentVal) {
+      opt.selected = true;
+    }
+    timeSelect.appendChild(opt);
+  });
+}
+
+// ================= INITIALIZATION & ROUTING =================
 if (typeof document !== "undefined") {
   document.addEventListener("DOMContentLoaded", () => {
-    loadClinicProfile();
+    loadClinicData();
     initDateLimits();
-    checkAdminSession();
+    checkAdminRoute();
 
-    // Close modals on clicking overlay backdrop
+    // Close modals on clicking backdrop
     document.addEventListener("click", (e) => {
       if (e.target.classList && e.target.classList.contains("modal-overlay")) {
         e.target.classList.remove("active");
@@ -78,7 +354,7 @@ if (typeof document !== "undefined") {
       }
     });
 
-    // Close modals on pressing Escape
+    // Close modals on Escape
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape") {
         document.querySelectorAll(".modal-overlay.active").forEach(m => m.classList.remove("active"));
@@ -86,9 +362,19 @@ if (typeof document !== "undefined") {
       }
     });
   });
+
+  window.addEventListener("hashchange", checkAdminRoute);
 }
 
-// Setup Date constraints (Today up to 30 days ahead)
+function checkAdminRoute() {
+  const hash = window.location.hash;
+  const search = new URLSearchParams(window.location.search);
+  if (hash === "#admin" || search.get("admin") === "true") {
+    openOwnerPortal();
+  }
+}
+
+// Setup Date constraints
 function initDateLimits() {
   const dateInput = document.getElementById("bookDate");
   if (!dateInput) return;
@@ -99,8 +385,9 @@ function initDateLimits() {
   const dd = String(today.getDate()).padStart(2, "0");
   const minDate = `${yyyy}-${mm}-${dd}`;
 
+  const horizon = CLINIC_DATA.advanceDays || 30;
   const max = new Date();
-  max.setDate(today.getDate() + 30);
+  max.setDate(today.getDate() + horizon);
   const maxYear = max.getFullYear();
   const maxMonth = String(max.getMonth() + 1).padStart(2, "0");
   const maxDay = String(max.getDate()).padStart(2, "0");
@@ -126,12 +413,14 @@ function updateRadioSelection(input) {
   if (parent) parent.classList.add("selected");
 }
 
-// ================= BOOKING MODAL =================
+// ================= PUBLIC CLIENT BOOKING MODAL =================
 function openBookingModal() {
   const modal = document.getElementById("bookingModal");
   if (modal) {
     modal.classList.add("active");
     document.body.style.overflow = "hidden";
+    renderSlotsInBookingForm();
+    loadAvailableSlots();
   }
 }
 
@@ -143,10 +432,8 @@ function closeBookingModal() {
   }
 }
 
-// Slot Management
 function loadAvailableSlots() {
-  // Dynamically update available slots if needed
-  const selectedDate = document.getElementById("bookDate").value;
+  const selectedDate = document.getElementById("bookDate")?.value;
   const timeSelect = document.getElementById("bookTime");
   if (!selectedDate || !timeSelect) return;
 
@@ -166,7 +453,6 @@ function loadAvailableSlots() {
   });
 }
 
-// ================= BOOKING SUBMISSION =================
 function handleBookingSubmit(event) {
   event.preventDefault();
 
@@ -179,6 +465,7 @@ function handleBookingSubmit(event) {
   const symptomsInput = document.getElementById("symptoms");
   const consultTypeInput = document.querySelector('input[name="consultationType"]:checked');
 
+  const patientName = nameInput.value.trim();
   const rawPhone = phoneInput.value.replace(/\D/g, "");
   const patientPhone = rawPhone.length >= 10 ? rawPhone.slice(-10) : rawPhone;
   const patientAge = ageInput.value.trim() || "30";
@@ -188,7 +475,6 @@ function handleBookingSubmit(event) {
   const symptoms = symptomsInput.value.trim();
   const consultationType = consultTypeInput ? consultTypeInput.value : "IN_CLINIC";
 
-  // Validate
   if (patientName.length < 2) {
     alert("Please enter a valid patient name.");
     nameInput.focus();
@@ -199,13 +485,13 @@ function handleBookingSubmit(event) {
     phoneInput.focus();
     return;
   }
-  if (!timeSlot) {
-    alert("Please select a convenient time slot.");
+  if (!timeSlot || timeSlot.includes("Already Booked")) {
+    alert("Please select an available consultation slot.");
     timeInput.focus();
     return;
   }
 
-  // Generate Unique ID
+  // Generate Unique Ticket ID
   const randomNum = Math.floor(1000 + Math.random() * 9000);
   const appointmentId = `HM-2026-${randomNum}`;
 
@@ -218,18 +504,18 @@ function handleBookingSubmit(event) {
     consultationType,
     date,
     timeSlot,
-    symptoms: symptoms || "Homeopathy Consultation",
+    symptoms: symptoms || "General Homeopathy Consultation",
     status: "PENDING",
     createdAt: new Date().toISOString()
   };
 
-  // Save to persistent storage
+  // Save to appointment store
   const appointments = getStoredAppointments();
   appointments.unshift(newAppointment);
   saveAppointments(appointments);
 
-  // Sync to Firebase if configured
-  if (window.IS_FIREBASE_ENABLED && window.db) {
+  // Sync to Firebase if present
+  if (typeof window !== "undefined" && window.IS_FIREBASE_ENABLED && window.db) {
     try {
       window.db.collection("appointments").doc(appointmentId).set(newAppointment);
     } catch (e) {
@@ -239,70 +525,59 @@ function handleBookingSubmit(event) {
 
   currentBooking = newAppointment;
 
-  // Reset form
+  // Reset form & close modal
   document.getElementById("bookingForm").reset();
   initDateLimits();
   closeBookingModal();
 
-  // Show Confirmation Modal
+  // Show Confirmation Modal for patient
   showConfirmation(newAppointment);
 }
 
-const APP_CLOUD_URL = "https://ais-pre-krh3ojasrp76qf4324mwph-653917990697.asia-southeast1.run.app";
-const ANDROID_PACKAGE = "com.aistudio.homeoai.clnxrt";
-
-function openAndroidAppDirectly() {
-  const isAndroid = /Android/i.test(navigator.userAgent);
-  if (isAndroid) {
-    const intentUri = `intent:#Intent;package=${ANDROID_PACKAGE};S.browser_fallback_url=${encodeURIComponent(APP_CLOUD_URL)};end`;
-    window.location.href = intentUri;
-    setTimeout(() => {
-      if (document.hidden || document.webkitHidden) return;
-      window.open(APP_CLOUD_URL, "_blank");
-    }, 1500);
-  } else {
-    window.open(APP_CLOUD_URL, "_blank");
-  }
-}
-
-function openBookingInAndroidApp() {
-  if (!currentBooking) {
-    openAndroidAppDirectly();
-    return;
-  }
-  const query = `id=${encodeURIComponent(currentBooking.id)}&name=${encodeURIComponent(currentBooking.patientName)}&phone=${encodeURIComponent(currentBooking.patientPhone)}&age=${encodeURIComponent(currentBooking.patientAge || 30)}&gender=${encodeURIComponent(currentBooking.patientGender || "Male")}&date=${encodeURIComponent(currentBooking.date)}&time=${encodeURIComponent(currentBooking.timeSlot)}&mode=${encodeURIComponent(currentBooking.consultationType)}&symptoms=${encodeURIComponent(currentBooking.symptoms || "")}`;
-  
-  const isAndroid = /Android/i.test(navigator.userAgent);
-  if (isAndroid) {
-    const intentUri = `intent://appointment?${query}#Intent;scheme=homeoclinic;package=${ANDROID_PACKAGE};S.browser_fallback_url=${encodeURIComponent(APP_CLOUD_URL)};end`;
-    window.location.href = intentUri;
-    setTimeout(() => {
-      if (document.hidden || document.webkitHidden) return;
-      window.open(APP_CLOUD_URL, "_blank");
-    }, 1500);
-  } else {
-    window.open(APP_CLOUD_URL, "_blank");
-  }
-}
-
-// ================= CONFIRMATION MODAL =================
+// ================= PUBLIC CONFIRMATION MODAL =================
 function showConfirmation(appt) {
-  document.getElementById("confirmApptId").textContent = appt.id;
+  const idEl = document.getElementById("confirmApptId");
+  if (idEl) idEl.textContent = appt.id;
+
   const smallId = document.getElementById("confirmApptIdSmall");
   if (smallId) smallId.textContent = appt.id;
-  document.getElementById("confirmPatientName").textContent = appt.patientName;
-  document.getElementById("confirmPatientPhone").textContent = appt.patientPhone;
-  document.getElementById("confirmDateTime").textContent = `${appt.date} at ${appt.timeSlot}`;
-  document.getElementById("confirmMode").textContent =
-    appt.consultationType === "IN_CLINIC" ? "In-Clinic Visit (Chennai)" : "Online Video Consultation";
 
-  // Dynamic Deep Link for QR Code & direct App Import
+  const nameEl = document.getElementById("confirmPatientName");
+  if (nameEl) nameEl.textContent = appt.patientName;
+
+  const phoneEl = document.getElementById("confirmPatientPhone");
+  if (phoneEl) phoneEl.textContent = appt.patientPhone;
+
+  const dtEl = document.getElementById("confirmDateTime");
+  if (dtEl) dtEl.textContent = `${appt.date} at ${appt.timeSlot}`;
+
+  const modeEl = document.getElementById("confirmMode");
+  if (modeEl) {
+    modeEl.textContent = appt.consultationType === "IN_CLINIC"
+      ? `In-Clinic Visit (${CLINIC_DATA.clinicName})`
+      : "Online Video Consultation (WhatsApp)";
+  }
+
+  const cleanPhone = (CLINIC_DATA.cleanPhone || CLINIC_DATA.phone.replace(/\D/g, "")).slice(-10);
+
+  // Dynamic deep link for QR code
   const query = `id=${encodeURIComponent(appt.id)}&name=${encodeURIComponent(appt.patientName)}&phone=${encodeURIComponent(appt.patientPhone)}&age=${encodeURIComponent(appt.patientAge || 30)}&gender=${encodeURIComponent(appt.patientGender || "Male")}&date=${encodeURIComponent(appt.date)}&time=${encodeURIComponent(appt.timeSlot)}&mode=${encodeURIComponent(appt.consultationType)}&symptoms=${encodeURIComponent(appt.symptoms || "")}`;
   const deepLink = `homeoclinic://appointment?${query}`;
 
   const qrImg = document.getElementById("confirmApptQr");
   if (qrImg) {
     qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(deepLink)}`;
+  }
+
+  const confirmPhoneLink = document.getElementById("confirmClinicPhoneLink");
+  if (confirmPhoneLink) {
+    confirmPhoneLink.href = `tel:+91${cleanPhone}`;
+    confirmPhoneLink.textContent = CLINIC_DATA.phone;
+  }
+
+  const confirmCallBtn = document.getElementById("confirmCallBtn");
+  if (confirmCallBtn) {
+    confirmCallBtn.href = `tel:+91${cleanPhone}`;
   }
 
   const modal = document.getElementById("confirmationModal");
@@ -322,30 +597,31 @@ function closeConfirmationModal() {
 
 function sendWhatsAppConfirmation() {
   if (!currentBooking) return;
+  const cleanPhone = (CLINIC_DATA.cleanPhone || CLINIC_DATA.phone.replace(/\D/g, "")).slice(-10);
   const query = `id=${encodeURIComponent(currentBooking.id)}&name=${encodeURIComponent(currentBooking.patientName)}&phone=${encodeURIComponent(currentBooking.patientPhone)}&age=${encodeURIComponent(currentBooking.patientAge || 30)}&gender=${encodeURIComponent(currentBooking.patientGender || "Male")}&date=${encodeURIComponent(currentBooking.date)}&time=${encodeURIComponent(currentBooking.timeSlot)}&mode=${encodeURIComponent(currentBooking.consultationType)}&symptoms=${encodeURIComponent(currentBooking.symptoms || "")}`;
   const deepLink = `homeoclinic://appointment?${query}`;
 
-  const msg = `*HOMEo AI Classical Clinic - Appointment Ticket*%0A%0A` +
-    `*Doctor Name:* Dr. Balaji, BHMS, MD (Homeopathy)%0A` +
+  const msg = `*${encodeURIComponent(CLINIC_DATA.clinicName)} - Appointment Request*%0A%0A` +
+    `*Doctor:* ${encodeURIComponent(CLINIC_DATA.doctorName)} (${encodeURIComponent(CLINIC_DATA.doctorQualification)})%0A` +
     `*Patient Name:* ${encodeURIComponent(currentBooking.patientName)}%0A` +
     `*Token ID:* ${encodeURIComponent(currentBooking.id)}%0A` +
     `*Date:* ${encodeURIComponent(currentBooking.date)}%0A` +
-    `*Slot:* ${encodeURIComponent(currentBooking.timeSlot)}%0A` +
-    `*Mode:* ${currentBooking.consultationType === "IN_CLINIC" ? "In-Clinic Visit (Chennai)" : "Online Video Consultation"}%0A` +
-    `*Fee:* ₹500%0A%0A` +
-    `*📲 Open in HOMEo AI App:*%0A${encodeURIComponent(deepLink)}%0A%0A` +
-    `_Please confirm my consultation. Thank you!_`;
+    `*Time Slot:* ${encodeURIComponent(currentBooking.timeSlot)}%0A` +
+    `*Mode:* ${currentBooking.consultationType === "IN_CLINIC" ? `In-Clinic Visit at ${encodeURIComponent(CLINIC_DATA.clinicName)}` : "Online Video Consultation"}%0A` +
+    `*Fee:* ₹${CLINIC_DATA.fee}%0A%0A` +
+    `*📲 Open in Clinic App:*%0A${encodeURIComponent(deepLink)}%0A%0A` +
+    `_Kindly confirm my appointment slot. Thank you!_`;
 
-  window.open(`https://wa.me/${CLINIC_INFO.cleanPhone}?text=${msg}`, "_blank");
+  window.open(`https://wa.me/91${cleanPhone}?text=${msg}`, "_blank");
 }
 
-// ================= OWNER / ADMIN PORTAL =================
-function openAdminModal() {
+// ================= SECURE OWNER PORTAL CONTROLLER =================
+function openOwnerPortal() {
   const modal = document.getElementById("adminModal");
   if (modal) {
     modal.classList.add("active");
     document.body.style.overflow = "hidden";
-    checkAdminSession();
+    updateOwnerPortalUI();
   }
 }
 
@@ -354,72 +630,250 @@ function closeAdminModal() {
   if (modal) {
     modal.classList.remove("active");
     document.body.style.overflow = "";
-  }
-}
-
-function checkAdminSession() {
-  const isLoggedIn = sessionStorage.getItem(STORAGE_KEYS.ADMIN_SESSION) === "true";
-  const loginForm = document.getElementById("adminLoginForm");
-  const dashView = document.getElementById("adminDashboardView");
-
-  if (isLoggedIn) {
-    if (loginForm) loginForm.style.display = "none";
-    if (dashView) {
-      dashView.style.display = "block";
-      renderAdminDashboard();
+    if (window.location.hash === "#admin") {
+      history.pushState("", document.title, window.location.pathname + window.location.search);
     }
-  } else {
-    if (loginForm) loginForm.style.display = "block";
+  }
+}
+
+function updateOwnerPortalUI() {
+  const setupView = document.getElementById("ownerSetupView");
+  const loginView = document.getElementById("ownerLoginView");
+  const dashView = document.getElementById("adminDashboardView");
+  const modalCard = document.getElementById("adminModalCard");
+  const modalTitle = document.getElementById("adminModalTitle");
+  const modalSubtitle = document.getElementById("adminModalSubtitle");
+
+  const isSetupDone = isOwnerSetupComplete();
+  const isAuth = isOwnerAuthenticated();
+
+  if (!isSetupDone) {
+    // 1. First-time setup: prompt Owner to configure credentials
+    if (setupView) setupView.style.display = "block";
+    if (loginView) loginView.style.display = "none";
     if (dashView) dashView.style.display = "none";
-  }
-}
-
-function handleAdminLogin() {
-  const emailInput = document.getElementById("adminEmail").value.trim().toLowerCase();
-  const passwordInput = document.getElementById("adminPassword").value.trim();
-
-  const savedPin = localStorage.getItem(STORAGE_KEYS.ADMIN_PIN) || "admin123";
-
-  // Check credentials
-  if (
-    (emailInput === "" || emailInput.includes("yugabharathi") || emailInput.includes("admin")) &&
-    (passwordInput === savedPin || passwordInput === "admin123")
-  ) {
-    sessionStorage.setItem(STORAGE_KEYS.ADMIN_SESSION, "true");
-    document.getElementById("adminPassword").value = "";
-    checkAdminSession();
+    if (modalCard) {
+      modalCard.classList.remove("modal-lg");
+      modalCard.classList.add("modal-sm");
+    }
+    if (modalTitle) modalTitle.innerHTML = `<i class="fa-solid fa-shield-halved"></i> Initial Owner Setup`;
+    if (modalSubtitle) modalSubtitle.textContent = `Set your private Owner ID & Master Password`;
+  } else if (!isAuth) {
+    // 2. Setup is done, but not logged in: show professional login
+    if (setupView) setupView.style.display = "none";
+    if (loginView) loginView.style.display = "block";
+    if (dashView) dashView.style.display = "none";
+    if (modalCard) {
+      modalCard.classList.remove("modal-lg");
+      modalCard.classList.add("modal-sm");
+    }
+    if (modalTitle) modalTitle.innerHTML = `<i class="fa-solid fa-lock"></i> Owner / Admin Login`;
+    if (modalSubtitle) modalSubtitle.textContent = `${CLINIC_DATA.clinicName} Private Management`;
   } else {
-    alert("Invalid owner password. Default PIN is 'admin123'.");
+    // 3. Authenticated: show full Owner Dashboard
+    if (setupView) setupView.style.display = "none";
+    if (loginView) loginView.style.display = "none";
+    if (dashView) dashView.style.display = "block";
+    if (modalCard) {
+      modalCard.classList.remove("modal-sm");
+      modalCard.classList.add("modal-lg");
+    }
+    if (modalTitle) modalTitle.innerHTML = `<i class="fa-solid fa-hospital-user"></i> ${CLINIC_DATA.clinicName} — Owner Dashboard`;
+    if (modalSubtitle) modalSubtitle.textContent = `Full Control & Website Management`;
+
+    const activeDisplay = document.getElementById("activeOwnerDisplay");
+    if (activeDisplay) activeDisplay.textContent = getActiveOwnerId();
+
+    renderAdminDashboard();
   }
 }
 
-function handleAdminLogout() {
-  sessionStorage.removeItem(STORAGE_KEYS.ADMIN_SESSION);
-  checkAdminSession();
+// 1. Initial Setup Handler
+async function handleOwnerSetup(event) {
+  event.preventDefault();
+  if (isOwnerSetupComplete()) {
+    alert("Owner account has already been initialized. Please log in.");
+    updateOwnerPortalUI();
+    return;
+  }
+
+  const ownerIdInput = document.getElementById("setupOwnerId");
+  const passInput = document.getElementById("setupOwnerPassword");
+  const confirmInput = document.getElementById("setupOwnerPasswordConfirm");
+  const errorDiv = document.getElementById("setupErrorMsg");
+
+  const ownerId = (ownerIdInput ? ownerIdInput.value : "").trim();
+  const password = passInput ? passInput.value : "";
+  const confirmPass = confirmInput ? confirmInput.value : "";
+
+  if (ownerId.length < 3) {
+    showAuthError(errorDiv, "Owner ID must be at least 3 characters long.");
+    return;
+  }
+  if (password.length < 6) {
+    showAuthError(errorDiv, "Master Password must be at least 6 characters long.");
+    return;
+  }
+  if (password !== confirmPass) {
+    showAuthError(errorDiv, "Passwords do not match. Please re-type your password.");
+    return;
+  }
+
+  const salt = generateSecureSalt();
+  const ownerIdHash = await hashCredential(ownerId.toLowerCase(), salt);
+  const passwordHash = await hashCredential(password, salt);
+
+  const authRecord = {
+    isSetupComplete: true,
+    ownerIdHash,
+    passwordHash,
+    salt,
+    createdAt: new Date().toISOString()
+  };
+
+  localStorage.setItem(STORAGE_KEYS.OWNER_AUTH, JSON.stringify(authRecord));
+
+  // Create active session
+  const session = {
+    ownerId,
+    token: generateSecureSalt(),
+    expiresAt: Date.now() + 2 * 60 * 60 * 1000 // 2 hours
+  };
+  sessionStorage.setItem(STORAGE_KEYS.OWNER_SESSION, JSON.stringify(session));
+
+  if (passInput) passInput.value = "";
+  if (confirmInput) confirmInput.value = "";
+  if (errorDiv) errorDiv.style.display = "none";
+
+  updateOwnerPortalUI();
+}
+
+// 2. Owner Login Handler
+async function handleOwnerLogin(event) {
+  event.preventDefault();
+  if (!isOwnerSetupComplete()) {
+    updateOwnerPortalUI();
+    return;
+  }
+
+  const idInput = document.getElementById("ownerLoginId");
+  const passInput = document.getElementById("ownerLoginPassword");
+  const errorDiv = document.getElementById("loginErrorMsg");
+  const errorText = document.getElementById("loginErrorText");
+
+  const ownerId = (idInput ? idInput.value : "").trim();
+  const password = passInput ? passInput.value : "";
+
+  const auth = getStoredOwnerAuth();
+  if (!auth) {
+    updateOwnerPortalUI();
+    return;
+  }
+
+  const checkIdHash = await hashCredential(ownerId.toLowerCase(), auth.salt);
+  const checkPassHash = await hashCredential(password, auth.salt);
+
+  if (checkIdHash === auth.ownerIdHash && checkPassHash === auth.passwordHash) {
+    // Authentication successful
+    if (errorDiv) errorDiv.style.display = "none";
+    const session = {
+      ownerId,
+      token: generateSecureSalt(),
+      expiresAt: Date.now() + 2 * 60 * 60 * 1000
+    };
+    sessionStorage.setItem(STORAGE_KEYS.OWNER_SESSION, JSON.stringify(session));
+
+    if (passInput) passInput.value = "";
+    updateOwnerPortalUI();
+  } else {
+    // Authentication failed
+    if (errorDiv) {
+      if (errorText) errorText.textContent = "Invalid Owner ID or Password.";
+      errorDiv.style.display = "flex";
+    }
+    if (passInput) passInput.value = "";
+  }
+}
+
+// 3. Owner Logout Handler
+function handleOwnerLogout() {
+  sessionStorage.removeItem(STORAGE_KEYS.OWNER_SESSION);
+  updateOwnerPortalUI();
+}
+
+function showAuthError(el, msg) {
+  if (el) {
+    el.textContent = msg;
+    el.style.display = "block";
+  } else {
+    alert(msg);
+  }
+}
+
+// ================= OWNER DASHBOARD CONTROLLERS =================
+function switchAdminTab(tabName) {
+  requireOwnerAuth();
+
+  const tabs = ["appts", "slots", "profile", "clinic", "security"];
+  tabs.forEach(t => {
+    const content = document.getElementById(`admin${t.charAt(0).toUpperCase() + t.slice(1)}TabContent`);
+    const btn = document.getElementById(`adminTab${t.charAt(0).toUpperCase() + t.slice(1)}Btn`);
+    if (content) content.style.display = (t === tabName) ? "block" : "none";
+    if (btn) {
+      if (t === tabName) {
+        btn.classList.add("active");
+      } else {
+        btn.classList.remove("active");
+      }
+    }
+  });
+
+  if (tabName === "appts") {
+    renderAdminAppointments();
+  } else if (tabName === "slots") {
+    renderAdminSlots();
+  } else if (tabName === "profile") {
+    populateDoctorProfileTab();
+  } else if (tabName === "clinic") {
+    populateClinicTab();
+  }
 }
 
 function renderAdminDashboard() {
+  requireOwnerAuth();
   const appointments = getStoredAppointments();
 
-  // Top stats
   const total = appointments.length;
   const pending = appointments.filter(a => a.status === "PENDING").length;
   const confirmed = appointments.filter(a => a.status === "CONFIRMED").length;
 
-  document.getElementById("statTotalAppointments").textContent = total;
-  document.getElementById("statPendingAppointments").textContent = pending;
-  document.getElementById("statConfirmedAppointments").textContent = confirmed;
+  const totalEl = document.getElementById("statTotalAppointments");
+  if (totalEl) totalEl.textContent = total;
+
+  const pendingEl = document.getElementById("statPendingAppointments");
+  if (pendingEl) pendingEl.textContent = pending;
+
+  const confirmedEl = document.getElementById("statConfirmedAppointments");
+  if (confirmedEl) confirmedEl.textContent = confirmed;
 
   filterAdminAppointments();
+  renderAdminSlots();
+  populateDoctorProfileTab();
+  populateClinicTab();
 }
 
+// TAB 1: Appointments Queue
 function filterAdminAppointments() {
+  requireOwnerAuth();
   const query = (document.getElementById("adminSearchInput")?.value || "").toLowerCase().trim();
   const statusFilter = document.getElementById("adminStatusFilter")?.value || "ALL";
 
   const appointments = getStoredAppointments();
   const filtered = appointments.filter(a => {
-    const matchesQuery = a.patientName.toLowerCase().includes(query) || a.patientPhone.includes(query) || a.id.toLowerCase().includes(query);
+    const matchesQuery = (a.patientName || "").toLowerCase().includes(query) ||
+      (a.patientPhone || "").includes(query) ||
+      (a.id || "").toLowerCase().includes(query) ||
+      (a.symptoms || "").toLowerCase().includes(query);
     const matchesStatus = statusFilter === "ALL" || a.status === statusFilter;
     return matchesQuery && matchesStatus;
   });
@@ -428,51 +882,55 @@ function filterAdminAppointments() {
   if (!listContainer) return;
 
   if (filtered.length === 0) {
-    listContainer.innerHTML = `<div style="text-align:center; padding:20px; color:#64748b; font-size:14px;">No appointments found.</div>`;
+    listContainer.innerHTML = `<div style="text-align:center; padding:30px; color:#64748b; font-size:14px;">No matching appointments found.</div>`;
     return;
   }
 
   listContainer.innerHTML = filtered.map(a => `
-    <div class="admin-appt-card status-${a.status.toLowerCase()}">
+    <div class="admin-appt-card status-${(a.status || "pending").toLowerCase()}">
       <div class="admin-appt-card-top">
         <div>
           <span class="admin-appt-id">${a.id}</span>
-          <h4 style="font-size:15px; margin:2px 0;">${a.patientName} (${a.patientAge}y, ${a.patientGender})</h4>
-          <span style="font-size:13px; color:#0d9488; font-weight:600;"><i class="fa-solid fa-phone"></i> ${a.patientPhone}</span>
+          <h4 style="font-size:15px; margin:2px 0; color:#0f172a;">${a.patientName} (${a.patientAge || 30}y, ${a.patientGender || "Male"})</h4>
+          <span style="font-size:13px; color:#0d9488; font-weight:600;"><i class="fa-solid fa-phone"></i> +91 ${a.patientPhone}</span>
         </div>
-        <span class="badge-${a.status === "CONFIRMED" ? "success" : a.status === "PENDING" ? "warning" : "secondary"}" style="font-size:11px; padding:3px 8px; border-radius:4px; font-weight:700; background:#f1f5f9;">
+        <span class="badge-${a.status === "CONFIRMED" ? "success" : a.status === "PENDING" ? "warning" : "secondary"}" style="font-size:11px; padding:3px 8px; border-radius:4px; font-weight:700;">
           ${a.status}
         </span>
       </div>
       <div style="font-size:13px; color:#475569; margin:4px 0;">
         <i class="fa-regular fa-calendar"></i> ${a.date} &bull; <i class="fa-regular fa-clock"></i> ${a.timeSlot} &bull; 
-        <strong>${a.consultationType === "IN_CLINIC" ? "In-Clinic" : "Online Video"}</strong>
+        <strong>${a.consultationType === "IN_CLINIC" ? "In-Clinic Visit" : "Online Video Consultation"}</strong>
       </div>
       <div style="font-size:12px; color:#64748b; background:#f8fafc; padding:6px 10px; border-radius:6px; margin-top:6px;">
         <strong>Symptoms:</strong> ${a.symptoms || "General Checkup"}
       </div>
-      <div class="admin-appt-actions">
+      <div class="admin-appt-actions" style="flex-wrap:wrap; margin-top:10px;">
         ${a.status === "PENDING" ? `
           <button class="btn btn-primary btn-sm" style="background:#059669; border-color:#059669; font-weight:700;" onclick="confirmAndNotifyPatient('${a.id}')">
-            <i class="fa-solid fa-check-double"></i> ✓ Confirm & WhatsApp Patient
+            <i class="fa-solid fa-check"></i> Approve &amp; WhatsApp
           </button>
         ` : ""}
         ${a.status === "CONFIRMED" ? `
           <button class="btn btn-outline btn-sm" onclick="confirmAndNotifyPatient('${a.id}')" title="Resend WhatsApp Confirmation">
-            <i class="fa-brands fa-whatsapp"></i> Resend WhatsApp
+            <i class="fa-brands fa-whatsapp"></i> WhatsApp Status
           </button>
         ` : ""}
-        ${a.status !== "COMPLETED" && a.status === "CONFIRMED" ? `
-          <button class="btn btn-outline btn-sm" onclick="updateAppointmentStatus('${a.id}', 'COMPLETED')">
-            <i class="fa-solid fa-circle-check"></i> Mark Consulted
-          </button>
-        ` : ""}
+        <select onchange="changeAppointmentStatusFromSelect('${a.id}', this.value)" class="form-control form-control-sm" style="width:auto; display:inline-block; font-size:12px;">
+          <option value="PENDING" ${a.status === "PENDING" ? "selected" : ""}>Pending</option>
+          <option value="CONFIRMED" ${a.status === "CONFIRMED" ? "selected" : ""}>Confirmed</option>
+          <option value="COMPLETED" ${a.status === "COMPLETED" ? "selected" : ""}>Completed</option>
+          <option value="CANCELLED" ${a.status === "CANCELLED" ? "selected" : ""}>Cancelled</option>
+        </select>
         ${a.status !== "CANCELLED" ? `
-          <button class="btn btn-secondary btn-sm" style="color:#dc2626;" onclick="updateAppointmentStatus('${a.id}', 'CANCELLED')">
-            <i class="fa-solid fa-ban"></i> Reject / Cancel
+          <button class="btn btn-secondary btn-sm" style="color:#dc2626;" onclick="rejectAppointment('${a.id}')">
+            <i class="fa-solid fa-ban"></i> Reject
           </button>
         ` : ""}
-        <a href="https://wa.me/91${a.patientPhone}?text=Hello%20${encodeURIComponent(a.patientName)},%20this%20is%20Dr.%20Balaji%20from%20HOMEo%20AI%20Classical%20Clinic%20regarding%20your%20appointment%20${a.id}." target="_blank" class="btn btn-whatsapp btn-sm">
+        <button class="btn btn-outline btn-sm" style="color:#94a3b8;" onclick="deleteAppointmentRecord('${a.id}')" title="Delete Booking Record">
+          <i class="fa-solid fa-trash"></i>
+        </button>
+        <a href="https://wa.me/91${a.patientPhone}?text=Hello%20${encodeURIComponent(a.patientName)},%20this%20is%20${encodeURIComponent(CLINIC_DATA.doctorName)}%20from%20${encodeURIComponent(CLINIC_DATA.clinicName)}%20regarding%20your%20appointment%20${a.id}." target="_blank" class="btn btn-whatsapp btn-sm">
           <i class="fa-brands fa-whatsapp"></i> Chat
         </a>
       </div>
@@ -480,42 +938,88 @@ function filterAdminAppointments() {
   `).join("");
 }
 
+function renderAdminAppointments() {
+  filterAdminAppointments();
+}
+
 function confirmAndNotifyPatient(id) {
+  requireOwnerAuth();
   const appointments = getStoredAppointments();
   const target = appointments.find(a => a.id === id);
-  if (target) {
-    target.status = "CONFIRMED";
-    saveAppointments(appointments);
-    renderAdminAppointments();
+  if (!target) return;
 
-    const msg = `*HOMEo AI Classical Clinic - Appointment Confirmed!*%0A%0A` +
-      `Dear *${encodeURIComponent(target.patientName)}*,%0A` +
-      `Your appointment with *Dr. Balaji, BHMS, MD (Homeopathy)* is *APPROVED & CONFIRMED*!%0A%0A` +
-      `*Token ID:* ${encodeURIComponent(target.id)}%0A` +
-      `*Date:* ${encodeURIComponent(target.date)}%0A` +
-      `*Time Slot:* ${encodeURIComponent(target.timeSlot)}%0A` +
-      `*Mode:* ${target.consultationType === "IN_CLINIC" ? "In-Clinic Visit (Chennai)" : "Online Video Consultation"}%0A` +
-      `*Fee:* ₹500%0A%0A` +
-      `*Address:* 74 Gandhi Road, Health Complex, Chennai%0A` +
-      `_Looking forward to your consultation. Thank you!_`;
+  target.status = "CONFIRMED";
+  saveAppointments(appointments);
 
-    window.open(`https://wa.me/91${target.patientPhone}?text=${msg}`, "_blank");
+  // Sync to Firebase
+  if (typeof window !== "undefined" && window.IS_FIREBASE_ENABLED && window.db) {
+    try {
+      window.db.collection("appointments").doc(id).update({ status: "CONFIRMED" });
+    } catch (e) {
+      console.warn("Firebase update error", e);
+    }
+  }
+
+  renderAdminDashboard();
+
+  const cleanPhone = (CLINIC_DATA.cleanPhone || CLINIC_DATA.phone.replace(/\D/g, "")).slice(-10);
+  const msg = `*${encodeURIComponent(CLINIC_DATA.clinicName)} - Appointment Confirmed!*%0A%0A` +
+    `Dear *${encodeURIComponent(target.patientName)}*,%0A` +
+    `Your appointment with *${encodeURIComponent(CLINIC_DATA.doctorName)}* is *APPROVED & CONFIRMED*!%0A%0A` +
+    `*Token ID:* ${encodeURIComponent(target.id)}%0A` +
+    `*Date:* ${encodeURIComponent(target.date)}%0A` +
+    `*Time Slot:* ${encodeURIComponent(target.timeSlot)}%0A` +
+    `*Mode:* ${target.consultationType === "IN_CLINIC" ? `In-Clinic Visit (${encodeURIComponent(CLINIC_DATA.address)})` : "Online Video Consultation"}%0A` +
+    `*Fee:* ₹${CLINIC_DATA.fee}%0A%0A` +
+    `_Looking forward to your consultation. Have questions? Call ${encodeURIComponent(CLINIC_DATA.phone)}._`;
+
+  window.open(`https://wa.me/91${target.patientPhone}?text=${msg}`, "_blank");
+}
+
+function rejectAppointment(id) {
+  requireOwnerAuth();
+  if (confirm("Are you sure you want to reject/cancel this appointment?")) {
+    updateAppointmentStatus(id, "CANCELLED");
   }
 }
 
+function changeAppointmentStatusFromSelect(id, newStatus) {
+  requireOwnerAuth();
+  updateAppointmentStatus(id, newStatus);
+}
+
 function updateAppointmentStatus(id, newStatus) {
+  requireOwnerAuth();
   const appointments = getStoredAppointments();
   const target = appointments.find(a => a.id === id);
-  if (target) {
-    target.status = newStatus;
+  if (!target) return;
+
+  target.status = newStatus;
+  saveAppointments(appointments);
+
+  if (typeof window !== "undefined" && window.IS_FIREBASE_ENABLED && window.db) {
+    try {
+      window.db.collection("appointments").doc(id).update({ status: newStatus });
+    } catch (e) {
+      console.warn("Firebase update error", e);
+    }
+  }
+
+  renderAdminDashboard();
+}
+
+function deleteAppointmentRecord(id) {
+  requireOwnerAuth();
+  if (confirm(`Permanently delete appointment ${id}? This cannot be undone.`)) {
+    let appointments = getStoredAppointments();
+    appointments = appointments.filter(a => a.id !== id);
     saveAppointments(appointments);
 
-    // Sync to Firebase if present
-    if (window.IS_FIREBASE_ENABLED && window.db) {
+    if (typeof window !== "undefined" && window.IS_FIREBASE_ENABLED && window.db) {
       try {
-        window.db.collection("appointments").doc(id).update({ status: newStatus });
+        window.db.collection("appointments").doc(id).delete();
       } catch (e) {
-        console.warn("Firebase update error", e);
+        console.warn("Firebase delete notice", e);
       }
     }
 
@@ -523,11 +1027,11 @@ function updateAppointmentStatus(id, newStatus) {
   }
 }
 
-// Export Appointments to CSV
 function exportAppointmentsCSV() {
+  requireOwnerAuth();
   const appointments = getStoredAppointments();
   if (appointments.length === 0) {
-    alert("No appointments to export.");
+    alert("No appointments available to export.");
     return;
   }
 
@@ -550,123 +1054,111 @@ function exportAppointmentsCSV() {
   const encodedUri = encodeURI(csvContent);
   const link = document.createElement("a");
   link.setAttribute("href", encodedUri);
-  link.setAttribute("download", `homeo_clinic_appointments_${new Date().toISOString().split("T")[0]}.csv`);
+  link.setAttribute("download", `sp_clinic_appointments_${new Date().toISOString().split("T")[0]}.csv`);
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
 }
 
-// ================= DOCTOR PROFILE & PICTURE CUSTOMIZATION =================
-let uploadedDoctorPhotoBase64 = null;
+// TAB 2: Manage Slots
+function renderAdminSlots() {
+  const container = document.getElementById("adminSlotsListContainer");
+  if (!container) return;
 
-function loadClinicProfile() {
-  try {
-    if (typeof localStorage === "undefined") return;
-    const raw = localStorage.getItem(STORAGE_KEYS.PROFILE);
-    if (raw) {
-      const data = JSON.parse(raw);
-      if (data.doctor) CLINIC_INFO.doctor = data.doctor;
-      if (data.qualification) CLINIC_INFO.qualification = data.qualification;
-      if (data.phone) {
-        CLINIC_INFO.phone = data.phone;
-        CLINIC_INFO.cleanPhone = data.phone.replace(/\D/g, "");
-      }
-      if (data.fee) CLINIC_INFO.fee = Number(data.fee);
-      if (data.speciality) CLINIC_INFO.speciality = data.speciality;
-      if (data.photo) CLINIC_INFO.photo = data.photo;
-    }
-  } catch (e) {
-    console.warn("Profile load error", e);
-  }
-  applyClinicProfileToDOM();
+  const slots = CLINIC_DATA.slots || DEFAULT_CLINIC_DATA.slots;
+  container.innerHTML = slots.map(slot => `
+    <span class="slot-tag">
+      <i class="fa-regular fa-clock" style="font-size:11px; color:#0d9488;"></i> ${slot}
+      <button class="remove-slot-btn" onclick="handleRemoveSlot('${slot}')" title="Remove slot">&times;</button>
+    </span>
+  `).join("");
+
+  const advanceInp = document.getElementById("editAdvanceDays");
+  if (advanceInp) advanceInp.value = CLINIC_DATA.advanceDays || 30;
+
+  const daysInp = document.getElementById("editConsultingDays");
+  if (daysInp) daysInp.value = CLINIC_DATA.consultingDays || "Monday - Saturday (Sunday Closed)";
 }
 
-function applyClinicProfileToDOM() {
-  // Update Doctor Name across website
-  document.querySelectorAll(".doc-name").forEach(el => el.textContent = CLINIC_INFO.doctor);
-  const docH2 = document.querySelector("#doctor h2");
-  if (docH2) docH2.textContent = CLINIC_INFO.doctor;
-
-  // Update Qualification & Speciality
-  const qualP = document.querySelector(".doc-qualification");
-  if (qualP) qualP.textContent = `${CLINIC_INFO.qualification} • ${CLINIC_INFO.speciality || "Classical Constitutional Homeopathy"}`;
-
-  // Update Doctor Photos
-  if (CLINIC_INFO.photo) {
-    document.querySelectorAll("img[alt*='Dr.'], img[alt*='Doctor'], .doc-avatar img").forEach(img => {
-      img.src = CLINIC_INFO.photo;
-    });
-    const preview = document.getElementById("editDoctorPicPreview");
-    if (preview) preview.src = CLINIC_INFO.photo;
+function handleAddSlot() {
+  requireOwnerAuth();
+  const input = document.getElementById("newSlotInput");
+  if (!input) return;
+  const val = input.value.trim();
+  if (!val) {
+    alert("Please enter a time slot (e.g. 04:30 PM - 05:00 PM)");
+    return;
   }
 
-  // Update Consultation Fee
-  document.querySelectorAll(".fee-amount").forEach(el => el.textContent = `₹${CLINIC_INFO.fee}`);
-
-  // Update Phone numbers & links
-  const phoneVal = CLINIC_INFO.phone || "+91 9876543210";
-  const heroCall = document.getElementById("heroCallClinicBtn");
-  if (heroCall) {
-    heroCall.href = `tel:${phoneVal}`;
-    heroCall.innerHTML = `<i class="fa-solid fa-phone-volume"></i> Call Clinic (${phoneVal})`;
-  }
-  const confirmPhoneLink = document.getElementById("confirmClinicPhoneLink");
-  if (confirmPhoneLink) {
-    confirmPhoneLink.href = `tel:${phoneVal}`;
-    confirmPhoneLink.textContent = phoneVal;
-  }
-  const confirmCallBtn = document.getElementById("confirmCallBtn");
-  if (confirmCallBtn) {
-    confirmCallBtn.href = `tel:${phoneVal}`;
+  if (!CLINIC_DATA.slots) CLINIC_DATA.slots = [...DEFAULT_CLINIC_DATA.slots];
+  if (CLINIC_DATA.slots.includes(val)) {
+    alert("This slot already exists.");
+    return;
   }
 
-  // Pre-fill inputs inside Doctor Admin Modal
+  CLINIC_DATA.slots.push(val);
+  input.value = "";
+  saveClinicData();
+  renderAdminSlots();
+}
+
+function handleRemoveSlot(slot) {
+  requireOwnerAuth();
+  if (CLINIC_DATA.slots && CLINIC_DATA.slots.length <= 1) {
+    alert("At least one time slot is required.");
+    return;
+  }
+  CLINIC_DATA.slots = (CLINIC_DATA.slots || DEFAULT_CLINIC_DATA.slots).filter(s => s !== slot);
+  saveClinicData();
+  renderAdminSlots();
+}
+
+function resetSlotsToDefault() {
+  requireOwnerAuth();
+  if (confirm("Reset all time slots to standard clinic hours?")) {
+    CLINIC_DATA.slots = [...DEFAULT_CLINIC_DATA.slots];
+    saveClinicData();
+    renderAdminSlots();
+  }
+}
+
+function saveSlotsConfiguration() {
+  requireOwnerAuth();
+  const advanceInp = document.getElementById("editAdvanceDays");
+  if (advanceInp) CLINIC_DATA.advanceDays = Number(advanceInp.value) || 30;
+
+  const daysInp = document.getElementById("editConsultingDays");
+  if (daysInp) CLINIC_DATA.consultingDays = daysInp.value.trim();
+
+  saveClinicData();
+  initDateLimits();
+
+  const msg = document.getElementById("slotsSaveMsg");
+  if (msg) {
+    msg.style.display = "flex";
+    setTimeout(() => { msg.style.display = "none"; }, 3500);
+  }
+}
+
+// TAB 3: Doctor Profile
+function populateDoctorProfileTab() {
   const nameInp = document.getElementById("editDoctorName");
-  if (nameInp) nameInp.value = CLINIC_INFO.doctor;
+  if (nameInp) nameInp.value = CLINIC_DATA.doctorName;
+
   const qualInp = document.getElementById("editDoctorQual");
-  if (qualInp) qualInp.value = CLINIC_INFO.qualification;
+  if (qualInp) qualInp.value = CLINIC_DATA.doctorQualification;
+
   const feeInp = document.getElementById("editDoctorFee");
-  if (feeInp) feeInp.value = CLINIC_INFO.fee;
-  const phoneInp = document.getElementById("editDoctorPhone");
-  if (phoneInp) phoneInp.value = CLINIC_INFO.phone;
+  if (feeInp) feeInp.value = CLINIC_DATA.fee;
+
   const specInp = document.getElementById("editDoctorSpec");
-  if (specInp) specInp.value = CLINIC_INFO.speciality || "Classical Constitutional Homeopathy";
-}
+  if (specInp) specInp.value = CLINIC_DATA.doctorSpeciality;
 
-function switchAdminTab(tabName) {
-  const apptsTab = document.getElementById("adminApptsTabContent");
-  const profileTab = document.getElementById("adminProfileTabContent");
-  const apptsBtn = document.getElementById("adminTabApptsBtn");
-  const profileBtn = document.getElementById("adminTabProfileBtn");
+  const bioInp = document.getElementById("editDoctorBio");
+  if (bioInp) bioInp.value = CLINIC_DATA.doctorBio;
 
-  if (tabName === "profile") {
-    if (apptsTab) apptsTab.style.display = "none";
-    if (profileTab) profileTab.style.display = "block";
-    if (apptsBtn) {
-      apptsBtn.style.borderBottom = "none";
-      apptsBtn.style.color = "#64748b";
-      apptsBtn.style.fontWeight = "600";
-    }
-    if (profileBtn) {
-      profileBtn.style.borderBottom = "3px solid #0d9488";
-      profileBtn.style.color = "#0d9488";
-      profileBtn.style.fontWeight = "700";
-    }
-    applyClinicProfileToDOM();
-  } else {
-    if (apptsTab) apptsTab.style.display = "block";
-    if (profileTab) profileTab.style.display = "none";
-    if (apptsBtn) {
-      apptsBtn.style.borderBottom = "3px solid #0d9488";
-      apptsBtn.style.color = "#0d9488";
-      apptsBtn.style.fontWeight = "700";
-    }
-    if (profileBtn) {
-      profileBtn.style.borderBottom = "none";
-      profileBtn.style.color = "#64748b";
-      profileBtn.style.fontWeight = "600";
-    }
-  }
+  const preview = document.getElementById("editDoctorPicPreview");
+  if (preview && CLINIC_DATA.doctorPhoto) preview.src = CLINIC_DATA.doctorPhoto;
 }
 
 function previewDoctorPhoto(input) {
@@ -689,46 +1181,200 @@ function previewDoctorPhotoUrl(url) {
   }
 }
 
-function saveClinicProfile() {
-  const docName = document.getElementById("editDoctorName").value.trim() || "Dr. Balaji";
-  const docQual = document.getElementById("editDoctorQual").value.trim() || "BHMS, MD (Homeopathy)";
-  const docFee = document.getElementById("editDoctorFee").value.trim() || "500";
-  const docPhone = document.getElementById("editDoctorPhone").value.trim() || "+919876543210";
-  const docSpec = document.getElementById("editDoctorSpec").value.trim() || "Classical Constitutional Homeopathy";
+function saveDoctorProfile() {
+  requireOwnerAuth();
+  const nameInp = document.getElementById("editDoctorName");
+  const qualInp = document.getElementById("editDoctorQual");
+  const feeInp = document.getElementById("editDoctorFee");
+  const specInp = document.getElementById("editDoctorSpec");
+  const bioInp = document.getElementById("editDoctorBio");
 
-  const profileData = {
-    doctor: docName,
-    qualification: docQual,
-    fee: docFee,
-    phone: docPhone,
-    speciality: docSpec,
-    photo: uploadedDoctorPhotoBase64 || CLINIC_INFO.photo || "doctor_portrait.jpg"
-  };
+  if (nameInp && nameInp.value.trim()) CLINIC_DATA.doctorName = nameInp.value.trim();
+  if (qualInp && qualInp.value.trim()) CLINIC_DATA.doctorQualification = qualInp.value.trim();
+  if (feeInp && feeInp.value.trim()) CLINIC_DATA.fee = Number(feeInp.value.trim()) || 500;
+  if (specInp && specInp.value.trim()) CLINIC_DATA.doctorSpeciality = specInp.value.trim();
+  if (bioInp && bioInp.value.trim()) CLINIC_DATA.doctorBio = bioInp.value.trim();
 
-  try {
-    localStorage.setItem(STORAGE_KEYS.PROFILE, JSON.stringify(profileData));
-  } catch (e) {
-    console.error("Save profile error", e);
+  if (uploadedDoctorPhotoBase64) {
+    CLINIC_DATA.doctorPhoto = uploadedDoctorPhotoBase64;
   }
 
-  CLINIC_INFO.doctor = docName;
-  CLINIC_INFO.qualification = docQual;
-  CLINIC_INFO.fee = Number(docFee);
-  CLINIC_INFO.phone = docPhone;
-  CLINIC_INFO.cleanPhone = docPhone.replace(/\D/g, "");
-  CLINIC_INFO.speciality = docSpec;
-  if (profileData.photo) CLINIC_INFO.photo = profileData.photo;
-
-  applyClinicProfileToDOM();
+  saveClinicData();
 
   const msg = document.getElementById("profileSaveMsg");
   if (msg) {
-    msg.style.display = "block";
+    msg.style.display = "flex";
     setTimeout(() => { msg.style.display = "none"; }, 3500);
   }
 }
 
-// Clean CommonJS Export (No 302 redirects)
+// TAB 4: Clinic Details & Settings
+function populateClinicTab() {
+  const nameInp = document.getElementById("editClinicName");
+  if (nameInp) nameInp.value = CLINIC_DATA.clinicName;
+
+  const tagInp = document.getElementById("editClinicTagline");
+  if (tagInp) tagInp.value = CLINIC_DATA.clinicSubtitle;
+
+  const phoneInp = document.getElementById("editClinicPhone");
+  if (phoneInp) phoneInp.value = CLINIC_DATA.phone;
+
+  const emailInp = document.getElementById("editClinicEmail");
+  if (emailInp) emailInp.value = CLINIC_DATA.email;
+
+  const addrInp = document.getElementById("editClinicAddress");
+  if (addrInp) addrInp.value = CLINIC_DATA.address;
+
+  const hoursInp = document.getElementById("editClinicHours");
+  if (hoursInp) hoursInp.value = CLINIC_DATA.consultingHours;
+
+  const inClinicCb = document.getElementById("editInClinicEnabled");
+  if (inClinicCb) inClinicCb.checked = Boolean(CLINIC_DATA.inClinicEnabled);
+
+  const onlineCb = document.getElementById("editOnlineEnabled");
+  if (onlineCb) onlineCb.checked = Boolean(CLINIC_DATA.onlineEnabled);
+}
+
+function saveClinicDetails() {
+  requireOwnerAuth();
+  const nameInp = document.getElementById("editClinicName");
+  const tagInp = document.getElementById("editClinicTagline");
+  const phoneInp = document.getElementById("editClinicPhone");
+  const emailInp = document.getElementById("editClinicEmail");
+  const addrInp = document.getElementById("editClinicAddress");
+  const hoursInp = document.getElementById("editClinicHours");
+  const inClinicCb = document.getElementById("editInClinicEnabled");
+  const onlineCb = document.getElementById("editOnlineEnabled");
+
+  if (nameInp && nameInp.value.trim()) CLINIC_DATA.clinicName = nameInp.value.trim();
+  if (tagInp && tagInp.value.trim()) CLINIC_DATA.clinicSubtitle = tagInp.value.trim();
+  if (phoneInp && phoneInp.value.trim()) {
+    CLINIC_DATA.phone = phoneInp.value.trim();
+    CLINIC_DATA.cleanPhone = phoneInp.value.replace(/\D/g, "");
+  }
+  if (emailInp && emailInp.value.trim()) CLINIC_DATA.email = emailInp.value.trim();
+  if (addrInp && addrInp.value.trim()) CLINIC_DATA.address = addrInp.value.trim();
+  if (hoursInp && hoursInp.value.trim()) CLINIC_DATA.consultingHours = hoursInp.value.trim();
+
+  if (inClinicCb) CLINIC_DATA.inClinicEnabled = inClinicCb.checked;
+  if (onlineCb) CLINIC_DATA.onlineEnabled = onlineCb.checked;
+
+  saveClinicData();
+
+  const msg = document.getElementById("clinicSaveMsg");
+  if (msg) {
+    msg.style.display = "flex";
+    setTimeout(() => { msg.style.display = "none"; }, 3500);
+  }
+}
+
+// TAB 5: Security & Credentials Management
+async function handleChangeOwnerId(event) {
+  event.preventDefault();
+  requireOwnerAuth();
+
+  const passInput = document.getElementById("changeIdCurrentPassword");
+  const newIdInput = document.getElementById("newOwnerIdInput");
+  const msgDiv = document.getElementById("changeIdMsg");
+
+  const currentPass = passInput ? passInput.value : "";
+  const newId = (newIdInput ? newIdInput.value : "").trim();
+
+  if (newId.length < 3) {
+    displayFeedback(msgDiv, "New Owner ID must be at least 3 characters.", false);
+    return;
+  }
+
+  const auth = getStoredOwnerAuth();
+  if (!auth) return;
+
+  const testPassHash = await hashCredential(currentPass, auth.salt);
+  if (testPassHash !== auth.passwordHash) {
+    displayFeedback(msgDiv, "Incorrect current password.", false);
+    return;
+  }
+
+  // Update Owner ID
+  auth.ownerIdHash = await hashCredential(newId.toLowerCase(), auth.salt);
+  localStorage.setItem(STORAGE_KEYS.OWNER_AUTH, JSON.stringify(auth));
+
+  // Update current session
+  const session = JSON.parse(sessionStorage.getItem(STORAGE_KEYS.OWNER_SESSION) || "{}");
+  session.ownerId = newId;
+  sessionStorage.setItem(STORAGE_KEYS.OWNER_SESSION, JSON.stringify(session));
+
+  if (passInput) passInput.value = "";
+  if (newIdInput) newIdInput.value = "";
+
+  const activeDisplay = document.getElementById("activeOwnerDisplay");
+  if (activeDisplay) activeDisplay.textContent = newId;
+
+  displayFeedback(msgDiv, "✓ Owner ID successfully updated!", true);
+}
+
+async function handleChangePassword(event) {
+  event.preventDefault();
+  requireOwnerAuth();
+
+  const currentPassInput = document.getElementById("currentPasswordInput");
+  const newPassInput = document.getElementById("newPasswordInput");
+  const confirmPassInput = document.getElementById("confirmNewPasswordInput");
+  const msgDiv = document.getElementById("changePassMsg");
+
+  const currentPass = currentPassInput ? currentPassInput.value : "";
+  const newPass = newPassInput ? newPassInput.value : "";
+  const confirmPass = confirmPassInput ? confirmPassInput.value : "";
+
+  if (newPass.length < 6) {
+    displayFeedback(msgDiv, "New password must be at least 6 characters.", false);
+    return;
+  }
+  if (newPass !== confirmPass) {
+    displayFeedback(msgDiv, "New passwords do not match.", false);
+    return;
+  }
+
+  const auth = getStoredOwnerAuth();
+  if (!auth) return;
+
+  const testPassHash = await hashCredential(currentPass, auth.salt);
+  if (testPassHash !== auth.passwordHash) {
+    displayFeedback(msgDiv, "Incorrect current password.", false);
+    return;
+  }
+
+  // Re-salt and update password
+  const newSalt = generateSecureSalt();
+  const currentOwnerId = getActiveOwnerId();
+  auth.salt = newSalt;
+  auth.ownerIdHash = await hashCredential(currentOwnerId.toLowerCase(), newSalt);
+  auth.passwordHash = await hashCredential(newPass, newSalt);
+
+  localStorage.setItem(STORAGE_KEYS.OWNER_AUTH, JSON.stringify(auth));
+
+  if (currentPassInput) currentPassInput.value = "";
+  if (newPassInput) newPassInput.value = "";
+  if (confirmPassInput) confirmPassInput.value = "";
+
+  displayFeedback(msgDiv, "✓ Master Password successfully updated!", true);
+}
+
+function displayFeedback(el, text, isSuccess) {
+  if (!el) return;
+  el.className = isSuccess ? "auth-alert auth-alert-success" : "auth-alert auth-alert-error";
+  el.textContent = text;
+  el.style.display = "flex";
+  setTimeout(() => { el.style.display = "none"; }, 4000);
+}
+
+// Module export for Node.js / testing environments
 if (typeof module !== "undefined" && module.exports) {
-  module.exports = { CLINIC_INFO };
+  module.exports = {
+    DEFAULT_CLINIC_DATA,
+    STORAGE_KEYS,
+    getStoredAppointments,
+    saveAppointments,
+    loadClinicData,
+    hashCredential
+  };
 }
