@@ -58,7 +58,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         val database = AppDatabase.getDatabase(this)
-        repository = ClinicRepository(database.clinicDao())
+        repository = ClinicRepository(database.clinicDao(), applicationContext)
 
         // Ensure database initial data is seeded
         CoroutineScope(Dispatchers.IO).launch {

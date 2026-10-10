@@ -193,6 +193,118 @@ fun AdminDashboardScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
+            val pendingAppointments = appointments.filter { it.status == AppointmentStatus.PENDING }
+
+            // Prominent New Appointment Notification Banner
+            if (pendingAppointments.isNotEmpty()) {
+                val latest = pendingAppointments.first()
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFEF3C7)),
+                    border = BorderStroke(1.5.dp, Color(0xFFF59E0B)),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    Icons.Filled.NotificationsActive,
+                                    contentDescription = null,
+                                    tint = Color(0xFFB45309),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "🔔 NEW APPOINTMENT (${pendingAppointments.size})",
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = Color(0xFF92400E),
+                                    fontSize = 13.sp
+                                )
+                            }
+                            TextButton(
+                                onClick = { selectedNavIndex = 3 },
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                            ) {
+                                Text("View All (${pendingAppointments.size})", fontWeight = FontWeight.Bold, color = Color(0xFFB45309), fontSize = 12.sp)
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Patient: ${latest.patientName}",
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color(0xFF1E293B)
+                        )
+                        Text(
+                            text = "Mobile: ${latest.patientPhone} • Date: ${latest.appointmentDate} at ${latest.timeSlot} • Mode: ${if (latest.type == AppointmentType.ONLINE) "Online" else "In-Clinic"}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color(0xFF475569)
+                        )
+                        Text(
+                            text = "Symptoms: ${latest.reasonForVisit}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color(0xFF475569)
+                        )
+
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Button(
+                                onClick = {
+                                    scope.launch {
+                                        repository.confirmAppointmentByAdmin(latest.id)
+                                        Toast.makeText(context, "Confirmed #${latest.id}", Toast.LENGTH_SHORT).show()
+                                    }
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = HealingGreen),
+                                modifier = Modifier.weight(1f),
+                                contentPadding = PaddingValues(vertical = 8.dp),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("CONFIRM", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            }
+
+                            OutlinedButton(
+                                onClick = {
+                                    scope.launch {
+                                        repository.cancelAppointmentByAdmin(latest.id, "Declined by clinic")
+                                        Toast.makeText(context, "Declined #${latest.id}", Toast.LENGTH_SHORT).show()
+                                    }
+                                },
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                                modifier = Modifier.weight(1f),
+                                contentPadding = PaddingValues(vertical = 8.dp),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Icon(Icons.Filled.Close, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("REJECT", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            }
+
+                            Button(
+                                onClick = { selectedAppointmentToInspect = latest },
+                                colors = ButtonDefaults.buttonColors(containerColor = MedicalBlue),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Text("VIEW", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            }
+                        }
+                    }
+                }
+            }
+
             // Horizontal Navigation Scrollable Tabs
             ScrollableTabRow(
                 selectedTabIndex = selectedNavIndex,
@@ -200,6 +312,11 @@ fun AdminDashboardScreen(
                 containerColor = MaterialTheme.colorScheme.surface
             ) {
                 navItems.forEachIndexed { index, (label, icon) ->
+                    val tabText = if (index == 3 && pendingAppointments.isNotEmpty()) {
+                        "Appointments (${pendingAppointments.size})"
+                    } else {
+                        label
+                    }
                     Tab(
                         selected = selectedNavIndex == index,
                         onClick = {
@@ -214,7 +331,7 @@ fun AdminDashboardScreen(
                                 Icon(icon, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = label,
+                                    text = tabText,
                                     fontWeight = if (selectedNavIndex == index) FontWeight.Bold else FontWeight.Normal,
                                     fontSize = 12.sp
                                 )
