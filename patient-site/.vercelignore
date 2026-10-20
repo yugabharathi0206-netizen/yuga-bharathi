@@ -1,0 +1,3 @@
+# Ignore server files on Vercel
+server.js
+server.log

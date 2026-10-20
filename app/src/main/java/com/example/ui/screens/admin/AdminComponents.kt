@@ -1309,7 +1309,9 @@ fun DoctorManagementView(
                         photoUrl = profilePhotoUrl.trim()
                     )
                     repository.saveOwnerDoctorProfile(doctorEntity, currentUser.id)
-                    Toast.makeText(context, "Doctor profile saved successfully!", Toast.LENGTH_LONG).show()
+                    val baseClinic = clinic ?: ClinicEntity(id = "clinic_main", name = clinicName)
+                    repository.syncClinicProfileToCloud(context, baseClinic, doctorEntity)
+                    Toast.makeText(context, "Doctor profile & slots saved & synced live to website!", Toast.LENGTH_LONG).show()
                 }
             },
             colors = ButtonDefaults.buttonColors(containerColor = EmeraldPrimary),

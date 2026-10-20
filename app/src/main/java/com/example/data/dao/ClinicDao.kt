@@ -42,6 +42,9 @@ interface ClinicDao {
     @Query("SELECT * FROM clinics WHERE id = 'clinic_main' LIMIT 1")
     fun getClinic(): Flow<ClinicEntity?>
 
+    @Query("SELECT * FROM clinics WHERE id = 'clinic_main' LIMIT 1")
+    suspend fun getClinicDirect(): ClinicEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertOrUpdateClinic(clinic: ClinicEntity)
 

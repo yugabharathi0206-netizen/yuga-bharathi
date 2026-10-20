@@ -1,4 +1,4 @@
-# Android Studio & Gradle files to ignore on Vercel
+# Ignore Android Studio & Gradle files on Vercel
 app/
 gradle/
 .gradle/
@@ -9,3 +9,12 @@ gradle.properties
 debug.keystore*
 metadata.json
 clinic-web-app.zip
+patient-booking-website.zip
+firebase-debug.log
+
+# Ignore server files so Vercel treats this as a pure high-performance static site
+server.js
+server.log
+
+# Ignore deprecated /web directory
+web/

@@ -17,8 +17,8 @@
       <a href="#home" class="brand-wrapper">
         <div class="brand-icon">🌿</div>
         <div class="brand-info">
-          <h1>Dr. Balaji Homeo Care</h1>
-          <p>Classical Homeopathy Clinic</p>
+          <h1 id="brandClinicName">Dr. Balaji Homeo Care</h1>
+          <p id="brandClinicTagline">Classical Homeopathy Clinic</p>
         </div>
       </a>
 
@@ -27,6 +27,8 @@
         <a href="#home" class="nav-link active">Home</a>
         <a href="#login" class="nav-link">Patient Login</a>
         <a href="#signup" class="nav-link nav-btn">Create Account</a>
+        <a href="#owner" class="nav-link" style="color: #047857; font-weight: 700; border: 1px dashed #10b981; border-radius: 6px; padding: 4px 8px;">🔐 Owner Portal</a>
+        <a href="clinic-patient-portal.zip" download="clinic-patient-portal.zip" class="nav-link" style="color: #0284c7; font-weight: 700; background: rgba(14,165,233,0.1); border-radius: 6px; padding: 4px 10px;" title="Download complete website files as ZIP archive">📥 Download ZIP</a>
       </nav>
 
       <!-- Authenticated Patient Navigation -->
@@ -35,6 +37,8 @@
         <a href="#book" class="nav-link nav-btn">Book Appointment</a>
         <a href="#appointments" class="nav-link">My Appointments</a>
         <a href="#profile" class="nav-link">Profile</a>
+        <a href="#owner" class="nav-link" id="navOwnerPortalLink" style="color: #047857; font-weight: 700;">🔐 Owner Portal</a>
+        <a href="clinic-patient-portal.zip" download="clinic-patient-portal.zip" class="nav-link" style="color: #0284c7; font-weight: 700; background: rgba(14,165,233,0.1); border-radius: 6px; padding: 4px 10px;" title="Download complete website files as ZIP archive">📥 Download ZIP</a>
         <div class="user-badge">
           <span class="avatar-dot"></span>
           <span id="navUserName">Patient</span>
@@ -56,7 +60,7 @@
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
             Permanent & Gentle Healing
           </div>
-          <h2 class="hero-title">Classical Homeopathy by <span>Dr. Balaji</span></h2>
+          <h2 class="hero-title" id="heroClinicHeading">Classical Homeopathy by <span id="heroDoctorSpan">Dr. Balaji</span></h2>
           <p class="hero-subtitle">
             Experience constitutional holistic treatment for chronic and acute ailments. Precision case taking, individualized natural remedies, and zero side-effects.
           </p>
@@ -89,11 +93,14 @@
 
         <div class="hero-doctor-aside">
           <div class="doctor-photo-wrap">
-            <img src="doctor_portrait.jpg" alt="Dr. Balaji - Classical Homeopath" onerror="this.src='https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&q=80'">
+            <img id="heroDoctorPhoto" src="doctor_portrait.jpg" alt="Doctor - Classical Homeopath" onerror="this.src='https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&q=80'">
           </div>
-          <h3 class="doctor-aside-name">Dr. Balaji</h3>
-          <p class="doctor-aside-qual">B.H.M.S., M.D. (Homeopathy)</p>
-          <p class="doctor-aside-exp">Chief Consultant & Classical Prescriber</p>
+          <h3 id="heroDoctorName" class="doctor-aside-name">Dr. Balaji</h3>
+          <p id="heroDoctorQual" class="doctor-aside-qual">B.H.M.S., M.D. (Homeopathy)</p>
+          <p id="heroDoctorExp" class="doctor-aside-exp">Chief Consultant & Classical Prescriber</p>
+          <button id="heroQuickOwnerBtn" class="owner-pill-badge" style="margin-top: 8px;" onclick="window.navigateTo('#owner')">
+            ⚙️ Edit Clinic & Slots
+          </button>
         </div>
       </div>
 
@@ -105,7 +112,7 @@
           </div>
           <div class="info-text">
             <h4>Consultation Timings</h4>
-            <p>Morning: 09:30 AM – 01:00 PM<br>Evening: 04:30 PM – 08:00 PM<br>(Monday to Saturday)</p>
+            <p id="infoConsultTimings">Morning: 09:00 AM – 12:00 PM<br>Evening: 04:00 PM – 08:00 PM<br>(Mon - Sat)</p>
           </div>
         </div>
 
@@ -114,8 +121,8 @@
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
           </div>
           <div class="info-text">
-            <h4>Clinic Location</h4>
-            <p>Dr. Balaji Homeo Care<br>Main Road, Classical Healthcare Complex<br>Reception: Available on Appointment</p>
+            <h4>Clinic Location & Address</h4>
+            <p id="infoClinicLocation">Main Road, Classical Healthcare Complex<br><a id="infoClinicWebUrl" href="#" target="_blank" style="color: var(--primary); text-decoration: underline; font-size: 0.82rem;">Visit Clinic Website</a></p>
           </div>
         </div>
 
@@ -125,7 +132,7 @@
           </div>
           <div class="info-text">
             <h4>Contact & WhatsApp</h4>
-            <p>Direct patient queries, booking confirmations, and dispensary updates are managed via our dedicated portal.</p>
+            <p id="infoClinicContact">Phone: <a id="infoClinicPhone" href="tel:+919840100000" style="color: var(--primary); font-weight: bold;">+91 98401 00000</a><br>WhatsApp: <a id="infoClinicWhatsApp" href="https://wa.me/919840100000" target="_blank" style="color: #10b981; font-weight: bold;">Direct Chat</a></p>
           </div>
         </div>
       </div>
@@ -442,6 +449,262 @@
       </div>
     </section>
 
+    <!-- VIEW 6: OWNER ONLY MASTER CONTROL CENTER -->
+    <section id="viewOwner" class="page-view">
+      <!-- State A: First-Time Permanent Owner Registration Gate (Shown only if no owner exists yet) -->
+      <div id="ownerRegisterGate" class="auth-wrapper" style="max-width: 520px; margin: 24px auto; display: none;">
+        <div class="auth-header">
+          <div class="auth-icon" style="background: rgba(16, 185, 129, 0.15); color: #059669; font-size: 1.8rem;">👑</div>
+          <div style="display: inline-block; background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; padding: 3px 12px; border-radius: 9999px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; margin-bottom: 8px;">
+            One-Time Master Setup
+          </div>
+          <h2>Clinic Owner Registration</h2>
+          <p>You are the clinic owner. Set your permanent Email ID & Password below. Once established, only this exact email and password will forever have master access to edit your clinic profile, web address, and appointment slots.</p>
+        </div>
+
+        <form id="ownerRegisterForm">
+          <div class="form-group">
+            <label class="form-label" for="ownerRegName">Doctor / Owner Full Name *</label>
+            <input type="text" id="ownerRegName" class="form-input" placeholder="e.g. Dr. Balaji" value="Dr. Balaji" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="ownerRegEmail">Permanent Owner Email ID *</label>
+            <input type="email" id="ownerRegEmail" class="form-input" placeholder="e.g. doctor@balajihomeocare.com" required autocomplete="email">
+            <p style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px;">
+              This will become your permanent master login email.
+            </p>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="ownerRegPass">Create Master Password *</label>
+            <input type="password" id="ownerRegPass" class="form-input" placeholder="Enter secure owner password" required minlength="4" autocomplete="new-password">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="ownerRegPassConfirm">Confirm Master Password *</label>
+            <input type="password" id="ownerRegPassConfirm" class="form-input" placeholder="Re-enter your owner password" required minlength="4" autocomplete="new-password">
+          </div>
+
+          <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 8px; padding: 12px; margin-bottom: 16px; font-size: 0.8rem; color: #065f46; display: flex; gap: 8px; align-items: flex-start;">
+            <span style="font-size: 1.1rem; line-height: 1;">🔒</span>
+            <div>
+              <strong>Permanent Single-Owner Security:</strong> Once registered, registration is locked forever. Only ONE owner account can exist in the system.
+            </div>
+          </div>
+
+          <button type="submit" id="btnRegisterOwner" class="btn btn-primary btn-block" style="padding: 12px; font-size: 1rem;">
+            🔐 Save & Lock Permanent Owner Access
+          </button>
+        </form>
+      </div>
+
+      <!-- State B: Verified Owner Login Gate (Shown when owner account is already registered) -->
+      <div id="ownerLoginGate" class="auth-wrapper" style="max-width: 480px; margin: 24px auto; display: none;">
+        <div class="auth-header">
+          <div class="auth-icon" style="background: rgba(13, 148, 136, 0.12); color: var(--primary);">🔐</div>
+          <div class="owner-pill-badge" style="margin-bottom: 10px;">
+            👑 Permanent Single-Owner Portal
+          </div>
+          <h2>Clinic Owner Login</h2>
+          <p>Protected access for the registered clinic owner only. Enter your credentials to manage your website address, profile, timings & booking slots.</p>
+        </div>
+
+        <div id="ownerRegisteredBanner" style="background: var(--surface-alt); border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; font-size: 0.82rem; color: var(--text-main); display: flex; align-items: center; justify-content: space-between;">
+          <span>Registered Owner:</span>
+          <strong id="ownerLockedEmailDisplay" style="color: var(--primary-dark);">care@balajihomeocare.com</strong>
+        </div>
+
+        <form id="ownerLoginForm">
+          <div class="form-group">
+            <label class="form-label" for="ownerLoginEmail">Owner Email ID *</label>
+            <input type="email" id="ownerLoginEmail" class="form-input" placeholder="Enter your registered owner email" required autocomplete="username">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="ownerLoginPass">Owner Password *</label>
+            <input type="password" id="ownerLoginPass" class="form-input" placeholder="Enter your owner password" required autocomplete="current-password">
+            <p style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px;">
+              Master owner password (or Android owner password / master key: <code>owner123</code>).
+            </p>
+          </div>
+
+          <div id="ownerLoginError" style="display: none; background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; border-radius: 8px; padding: 10px; font-size: 0.82rem; margin-bottom: 14px;"></div>
+
+          <button type="submit" id="btnLoginOwner" class="btn btn-primary btn-block" style="padding: 12px; font-size: 1rem;">
+            🔓 Unlock Owner Command Center
+          </button>
+        </form>
+      </div>
+
+      <!-- State C: Owner Management Panel (Shown once authenticated) -->
+      <div id="ownerControlPanel" style="display: none; max-width: 900px; margin: 0 auto;">
+        <div class="dashboard-header" style="background: linear-gradient(135deg, #065f46 0%, #0d9488 100%);">
+          <div>
+            <div style="display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.22); padding: 4px 12px; border-radius: 6px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; margin-bottom: 6px; color: #fff;">
+              <span>👑</span> Verified Single Owner: <span id="ownerHeaderEmailBadge">owner</span>
+            </div>
+            <h2>Clinic Owner Command Center</h2>
+            <p>Update your clinic website, address, profile, hero image, and appointment slots. Changes instantly reflect on both this website and your Doctor Android App.</p>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <a href="clinic-patient-portal.zip" download="clinic-patient-portal.zip" class="btn btn-secondary btn-sm" style="background: rgba(255,255,255,0.22); color: #fff; border-color: rgba(255,255,255,0.45); text-decoration: none; white-space: nowrap;">
+              📥 Download ZIP
+            </a>
+            <button id="ownerLogoutBtn" type="button" class="btn btn-secondary btn-sm" style="background: rgba(255,255,255,0.2); color: #fff; border-color: rgba(255,255,255,0.4); white-space: nowrap;">
+              🔒 Lock / Logout
+            </button>
+          </div>
+        </div>
+
+        <form id="ownerClinicForm" style="display: flex; flex-direction: column; gap: 20px;">
+          <!-- 1. Clinic Web Address & Links -->
+          <div class="auth-wrapper" style="margin: 0;">
+            <h3 style="margin-bottom: 14px; display: flex; align-items: center; gap: 8px;">
+              🌐 <span>Clinic Identity & Website Address</span>
+            </h3>
+            <div class="form-group">
+              <label class="form-label" for="ownClinicName">Clinic Name *</label>
+              <input type="text" id="ownClinicName" class="form-input" placeholder="e.g. Dr. Balaji Homeo Care" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="ownWebsiteUrl">Clinic Website URL (Web Address)</label>
+              <input type="url" id="ownWebsiteUrl" class="form-input" placeholder="e.g. https://yugabharathi0206-netizen.github.io/yuga-bharathi/">
+              <p style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px;">
+                Your live website or GitHub Pages URL displayed to patients.
+              </p>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="ownAddress">Full Clinic Physical Address *</label>
+              <textarea id="ownAddress" class="form-input" rows="2" placeholder="e.g. Main Road, Classical Healthcare Complex, Chennai" required></textarea>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+              <div class="form-group">
+                <label class="form-label" for="ownPhone">Clinic Phone Number *</label>
+                <input type="text" id="ownPhone" class="form-input" placeholder="e.g. +91 98401 00000" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="ownWhatsApp">WhatsApp Number</label>
+                <input type="text" id="ownWhatsApp" class="form-input" placeholder="e.g. +91 98401 00000">
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. Doctor Profile & Image -->
+          <div class="auth-wrapper" style="margin: 0;">
+            <h3 style="margin-bottom: 14px; display: flex; align-items: center; gap: 8px;">
+              👨‍⚕️ <span>Doctor Profile & Photo</span>
+            </h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+              <div class="form-group">
+                <label class="form-label" for="ownDoctorName">Doctor Full Name *</label>
+                <input type="text" id="ownDoctorName" class="form-input" placeholder="e.g. Dr. Balaji" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="ownDoctorQual">Qualifications</label>
+                <input type="text" id="ownDoctorQual" class="form-input" placeholder="e.g. B.H.M.S., M.D. (Homeopathy)">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="ownDoctorBio">Specialization / Tagline</label>
+              <input type="text" id="ownDoctorBio" class="form-input" placeholder="e.g. Chief Consultant & Classical Prescriber">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="ownPhotoUrl">Doctor Profile Image (URL or uploaded file)</label>
+              <input type="text" id="ownPhotoUrl" class="form-input" placeholder="doctor_portrait.jpg or https://...">
+              <div style="margin-top: 8px; display: flex; align-items: center; gap: 12px;">
+                <label class="btn btn-secondary btn-sm" style="cursor: pointer; margin: 0;">
+                  📁 Choose Image File
+                  <input type="file" id="ownPhotoFileInput" accept="image/*" style="display: none;">
+                </label>
+                <span id="ownPhotoFileStatus" style="font-size: 0.8rem; color: var(--text-muted);">Current: doctor_portrait.jpg</span>
+              </div>
+              <div id="ownPhotoPreviewWrap" style="margin-top: 10px; width: 80px; height: 80px; border-radius: 50%; overflow: hidden; border: 2px solid var(--primary); display: none;">
+                <img id="ownPhotoPreview" src="" alt="Doctor Preview" style="width: 100%; height: 100%; object-fit: cover;">
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. Dynamic Slot Management -->
+          <div class="auth-wrapper" style="margin: 0;">
+            <h3 style="margin-bottom: 14px; display: flex; align-items: center; gap: 8px;">
+              ⏰ <span>Clinic Opening Timings & Slot Generator</span>
+            </h3>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 14px;">
+              Change your clinic hours (e.g. 9:00 AM to 12:00 PM). You can generate slots automatically or add/remove any specific time slot.
+            </p>
+
+            <div style="background: var(--surface-alt); padding: 14px; border-radius: var(--radius-md); margin-bottom: 16px;">
+              <h4 style="font-size: 0.9rem; margin-bottom: 10px; color: var(--primary-dark);">Automatic Shift Generator:</h4>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                <div class="form-group">
+                  <label class="form-label" for="ownMorningStart">Morning Open Time</label>
+                  <input type="text" id="ownMorningStart" class="form-input" placeholder="09:00 AM" value="09:00 AM">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="ownMorningEnd">Morning Close Time</label>
+                  <input type="text" id="ownMorningEnd" class="form-input" placeholder="12:00 PM" value="12:00 PM">
+                </div>
+              </div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                <div class="form-group">
+                  <label class="form-label" for="ownEveningStart">Evening Open Time</label>
+                  <input type="text" id="ownEveningStart" class="form-input" placeholder="04:00 PM" value="04:00 PM">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="ownEveningEnd">Evening Close Time</label>
+                  <input type="text" id="ownEveningEnd" class="form-input" placeholder="08:00 PM" value="08:00 PM">
+                </div>
+              </div>
+              <div style="display: flex; gap: 10px; align-items: flex-end;">
+                <div class="form-group" style="flex: 1; margin: 0;">
+                  <label class="form-label" for="ownSlotDuration">Slot Duration</label>
+                  <select id="ownSlotDuration" class="form-input">
+                    <option value="15">15 Minutes</option>
+                    <option value="20">20 Minutes</option>
+                    <option value="30" selected>30 Minutes</option>
+                    <option value="45">45 Minutes</option>
+                    <option value="60">60 Minutes</option>
+                  </select>
+                </div>
+                <button type="button" id="btnAutoGenerateSlots" class="btn btn-secondary" style="height: 44px; white-space: nowrap;">
+                  ⚡ Auto-Generate Slots
+                </button>
+              </div>
+            </div>
+
+            <!-- Custom Slot Editor -->
+            <div>
+              <label class="form-label">Active Booking Slots for Patients:</label>
+              <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+                <input type="text" id="ownNewSlotInput" class="form-input" placeholder="e.g. 10:45 AM or 02:30 PM" style="flex: 1;">
+                <button type="button" id="btnAddSingleSlot" class="btn btn-secondary btn-sm" style="white-space: nowrap;">
+                  + Add Slot
+                </button>
+              </div>
+              <div id="ownSlotTagCloud" class="slot-tag-cloud">
+                <!-- Dynamically rendered chips with delete (x) -->
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-top: 14px;">
+              <label class="form-label" for="ownWorkingSummary">Working Hours Summary Text</label>
+              <input type="text" id="ownWorkingSummary" class="form-input" placeholder="e.g. Mon - Sat: 9:00 AM - 12:00 PM & 4:00 PM - 8:00 PM">
+            </div>
+          </div>
+
+          <!-- Save All Changes Button -->
+          <div style="position: sticky; bottom: 16px; background: var(--surface); padding: 14px; border-radius: var(--radius-md); box-shadow: var(--shadow-lg); border: 1px solid var(--border); display: flex; gap: 12px;">
+            <button type="submit" id="btnSaveOwnerChanges" class="btn btn-primary" style="flex: 1; height: 50px; font-size: 1.05rem;">
+              💾 Save All Changes & Publish Live
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="window.navigateTo('#home')">
+              View Website
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
   </main>
 
   <!-- ================= BOOKING SUCCESS MODAL ================= -->
@@ -472,7 +735,11 @@
 
   <!-- Site Footer -->
   <footer class="site-footer">
-    <p>© 2026 Dr. Balaji Homeo Care. All rights reserved. • Classical Constitutional Homeopathy</p>
+    <p>
+      © 2026 Dr. Balaji Homeo Care. All rights reserved. • Classical Constitutional Homeopathy
+      <span style="margin: 0 8px;">•</span>
+      <a href="clinic-patient-portal.zip" download="clinic-patient-portal.zip" style="color: #a7f3d0; font-weight: 600; text-decoration: underline;">📥 Download Website Files (ZIP)</a>
+    </p>
   </footer>
 
   <!-- Firebase v10 Compat SDK -->

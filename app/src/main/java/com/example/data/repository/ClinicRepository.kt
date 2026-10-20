@@ -99,6 +99,23 @@ class ClinicRepository(
         dao.insertUser(ownerUser)
         _currentUser.value = ownerUser
 
+        // Sync owner credentials to Cloud Firestore clinicProfile so Web Owner Portal is unified
+        try {
+            val dbId = context?.getString(com.example.R.string.firestore_database_id)
+            if (dbId != null) {
+                val firestore = com.google.firebase.firestore.FirebaseFirestore.getInstance(dbId)
+                val ownerData = hashMapOf<String, Any>(
+                    "isOwnerRegistered" to true,
+                    "ownerEmail" to cleanEmail,
+                    "ownerPassword" to password,
+                    "ownerName" to cleanName,
+                    "doctorName" to cleanName,
+                    "updatedAt" to System.currentTimeMillis()
+                )
+                firestore.collection("clinicProfile").document("main").set(ownerData, com.google.firebase.firestore.SetOptions.merge())
+            }
+        } catch (_: Exception) {}
+
         dao.insertAuditLog(
             AuditLogEntity(
                 adminId = ownerId,
@@ -442,8 +459,18 @@ class ClinicRepository(
 
     // Direct access & profile updates
     suspend fun getDoctor(id: String): DoctorEntity? = dao.getDoctorById(id)
-    suspend fun saveClinic(clinic: ClinicEntity) = dao.insertOrUpdateClinic(clinic)
-    suspend fun saveDoctor(doctor: DoctorEntity) = dao.insertDoctor(doctor)
+    suspend fun saveClinic(clinic: ClinicEntity) {
+        dao.insertOrUpdateClinic(clinic)
+        val doc = dao.getFirstDoctor()
+        syncClinicProfileToCloud(context, clinic, doc)
+    }
+    suspend fun saveDoctor(doctor: DoctorEntity) {
+        dao.insertDoctor(doctor)
+        val clinic = dao.getClinicDirect()
+        if (clinic != null) {
+            syncClinicProfileToCloud(context, clinic, doctor)
+        }
+    }
     suspend fun savePatient(patient: PatientEntity) = dao.insertOrUpdatePatient(patient)
     suspend fun updateUser(user: UserEntity) {
         dao.updateUser(user)
@@ -1152,4 +1179,47 @@ class ClinicRepository(
     suspend fun syncAppointmentConfirmationToCloud(customContext: android.content.Context? = null, appointmentId: String) {
         syncAppointmentStatusToCloud(customContext, appointmentId, "CONFIRMED")
     }
+
+    suspend fun syncClinicProfileToCloud(
+        customContext: android.content.Context? = null,
+        clinic: ClinicEntity,
+        doctor: DoctorEntity?
+    ) {
+        val ctx = customContext ?: context ?: return
+        try {
+            val dbId = ctx.getString(com.example.R.string.firestore_database_id)
+            val firestore = com.google.firebase.firestore.FirebaseFirestore.getInstance(dbId)
+            val map = mutableMapOf<String, Any>(
+                "clinicName" to clinic.name,
+                "doctorName" to (clinic.doctorName.ifBlank { doctor?.name.orEmpty() }),
+                "phone" to clinic.phone,
+                "whatsAppNumber" to clinic.whatsAppNumber.ifBlank { clinic.phone },
+                "email" to clinic.email,
+                "address" to clinic.address,
+                "openingTime" to clinic.openingTime,
+                "closingTime" to clinic.closingTime,
+                "workingHoursSummary" to clinic.workingHoursSummary,
+                "websiteUrl" to clinic.website,
+                "updatedAt" to System.currentTimeMillis()
+            )
+            doctor?.let { d ->
+                map["morningStart"] = d.morningStart
+                map["morningEnd"] = d.morningEnd
+                map["eveningStart"] = d.eveningStart
+                map["eveningEnd"] = d.eveningEnd
+                map["slotDurationMinutes"] = d.slotDurationMinutes
+                map["qualification"] = d.qualification
+                map["specialization"] = d.specialization
+                map["bio"] = d.bio
+                if (d.photoUrl.isNotBlank()) {
+                    map["photoUrl"] = d.photoUrl
+                }
+            }
+            firestore.collection("clinicProfile").document("main").set(map)
+            android.util.Log.d("FirestoreSync", "Clinic profile successfully synced to Cloud Firestore!")
+        } catch (e: Exception) {
+            android.util.Log.w("FirestoreSync", "Cloud clinicProfile sync note: ${e.message}")
+        }
+    }
+
 }
