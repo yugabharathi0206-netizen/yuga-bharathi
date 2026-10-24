@@ -829,9 +829,23 @@
     const nameEl = document.getElementById("profName");
     const mobileEl = document.getElementById("profMobile");
     const emailEl = document.getElementById("profEmail");
+    const avatarImg = document.getElementById("profAvatarImg");
+    const placeholder = document.getElementById("profAvatarPlaceholder");
+
     if (nameEl) nameEl.value = currentPatient.fullName;
     if (mobileEl) mobileEl.value = currentPatient.mobile;
     if (emailEl) emailEl.value = currentPatient.email || "";
+
+    if (avatarImg && placeholder) {
+      if (currentPatient.photoUrl) {
+        avatarImg.src = currentPatient.photoUrl;
+        avatarImg.style.display = "block";
+        placeholder.style.display = "none";
+      } else {
+        avatarImg.style.display = "none";
+        placeholder.style.display = "block";
+      }
+    }
   }
 
   // ================= CLINIC PROFILE & OWNER LOGIC =================
@@ -1463,27 +1477,165 @@
       });
     }
 
+    // ================= CLIENT-SIDE IMAGE COMPRESSOR & OPTIMIZER =================
+    function compressImageFile(file, maxWidth = 480, maxHeight = 480, quality = 0.85) {
+      return new Promise((resolve, reject) => {
+        if (!file || !file.type.startsWith("image/")) {
+          return reject(new Error("Please select an image file (JPG, PNG, WEBP)."));
+        }
+        const reader = new FileReader();
+        reader.onerror = () => reject(new Error("Failed to read image file."));
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onerror = () => reject(new Error("Selected file is not a valid image."));
+          img.onload = () => {
+            let w = img.width;
+            let h = img.height;
+            if (w > h) {
+              if (w > maxWidth) {
+                h = Math.round((h * maxWidth) / w);
+                w = maxWidth;
+              }
+            } else {
+              if (h > maxHeight) {
+                w = Math.round((width => (h * maxWidth) / w)(w));
+                w = Math.round((w * maxHeight) / h);
+                h = maxHeight;
+              }
+            }
+            const canvas = document.createElement("canvas");
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0, w, h);
+            // Compressed JPEG data URL (approx 30KB - 60KB, perfectly below Firestore & localStorage limits)
+            const compressedDataUrl = canvas.toDataURL("image/jpeg", quality);
+            resolve(compressedDataUrl);
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // Instant save helper for Doctor Profile Photo
+    async function saveDoctorPhotoImmediately(newPhotoUrl) {
+      if (!newPhotoUrl) return;
+      try {
+        currentClinicProfile.photoUrl = newPhotoUrl;
+        currentClinicProfile.updatedAt = Date.now();
+
+        // 1. Immediately write to Cloud Firestore
+        if (window.db) {
+          await window.db.collection("clinicProfile").doc("main").set({
+            photoUrl: newPhotoUrl,
+            updatedAt: Date.now()
+          }, { merge: true });
+        }
+
+        // 2. Cache in localStorage
+        localStorage.setItem(STORAGE_KEYS.CLINIC_PROFILE, JSON.stringify(currentClinicProfile));
+
+        // 3. Update all images in DOM
+        updatePublicClinicInfoInDOM();
+        const preview = document.getElementById("ownPhotoPreview");
+        const urlInput = document.getElementById("ownPhotoUrl");
+        if (preview) preview.src = newPhotoUrl;
+        if (urlInput) urlInput.value = newPhotoUrl;
+
+        showToast("✅ Doctor profile photo updated and saved live!", "success");
+      } catch (err) {
+        console.error("Photo save error:", err);
+        showToast("Error saving photo: " + err.message, "error");
+      }
+    }
+
+    // Expose preset photo setter
+    window.setPresetPhoto = function(url) {
+      const urlInput = document.getElementById("ownPhotoUrl");
+      const preview = document.getElementById("ownPhotoPreview");
+      const status = document.getElementById("ownPhotoFileStatus");
+      if (urlInput) urlInput.value = url;
+      if (preview) preview.src = url;
+      if (status) status.textContent = `Applied preset: ${url.startsWith("http") ? "Physician Avatar" : "Original Portrait"}`;
+      saveDoctorPhotoImmediately(url);
+    };
+
+    // Quick photo trigger from Hero Card
+    window.triggerDoctorPhotoUpload = function() {
+      const isAuth = isOwnerAuthenticated || sessionStorage.getItem(STORAGE_KEYS.OWNER_AUTH) === "true";
+      if (isAuth) {
+        const input = document.getElementById("heroQuickPhotoInput");
+        if (input) input.click();
+      } else {
+        navigateTo("#owner");
+        showToast("Please log in as Master Owner to change the doctor profile picture.", "info");
+      }
+    };
+
+    // Handler for doctor photo file selection
+    async function handleDoctorPhotoFileSelection(file, statusEl) {
+      if (!file) return;
+      try {
+        if (statusEl) statusEl.textContent = `⏳ Optimizing & compressing ${file.name}...`;
+        const compressedDataUrl = await compressImageFile(file, 480, 480, 0.85);
+        const urlInput = document.getElementById("ownPhotoUrl");
+        const preview = document.getElementById("ownPhotoPreview");
+        if (urlInput) urlInput.value = compressedDataUrl;
+        if (preview) preview.src = compressedDataUrl;
+        if (statusEl) statusEl.textContent = `✓ Selected: ${file.name} (Optimized for instant sync)`;
+
+        // Automatically save to cloud
+        await saveDoctorPhotoImmediately(compressedDataUrl);
+      } catch (err) {
+        alert("Failed to process image: " + err.message);
+        if (statusEl) statusEl.textContent = "Error loading image. Try another file.";
+      }
+    }
+
     // F. Doctor Photo File Input & Live Preview
     const photoFileInput = document.getElementById("ownPhotoFileInput");
     if (photoFileInput) {
       photoFileInput.addEventListener("change", (e) => {
         const file = e.target.files && e.target.files[0];
-        if (file) {
-          const reader = new FileReader();
-          reader.onload = (ev) => {
-            const dataUrl = ev.target.result;
-            const urlInput = document.getElementById("ownPhotoUrl");
-            const preview = document.getElementById("ownPhotoPreview");
-            const previewWrap = document.getElementById("ownPhotoPreviewWrap");
-            const status = document.getElementById("ownPhotoFileStatus");
+        const status = document.getElementById("ownPhotoFileStatus");
+        handleDoctorPhotoFileSelection(file, status);
+      });
+    }
 
-            if (urlInput) urlInput.value = dataUrl;
-            if (preview) preview.src = dataUrl;
-            if (previewWrap) previewWrap.style.display = "block";
-            if (status) status.textContent = `Selected: ${file.name}`;
-          };
-          reader.readAsDataURL(file);
+    const heroQuickInput = document.getElementById("heroQuickPhotoInput");
+    if (heroQuickInput) {
+      heroQuickInput.addEventListener("change", (e) => {
+        const file = e.target.files && e.target.files[0];
+        const status = document.getElementById("ownPhotoFileStatus");
+        handleDoctorPhotoFileSelection(file, status);
+      });
+    }
+
+    const btnSavePhotoOnly = document.getElementById("btnSavePhotoOnly");
+    if (btnSavePhotoOnly) {
+      btnSavePhotoOnly.addEventListener("click", () => {
+        const url = (document.getElementById("ownPhotoUrl")?.value || "").trim() || currentClinicProfile.photoUrl;
+        saveDoctorPhotoImmediately(url);
+      });
+    }
+
+    const btnResetDefaultPhoto = document.getElementById("btnResetDefaultPhoto");
+    if (btnResetDefaultPhoto) {
+      btnResetDefaultPhoto.addEventListener("click", () => {
+        window.setPresetPhoto("doctor_portrait.jpg");
+      });
+    }
+
+    const btnApplyPhotoUrl = document.getElementById("btnApplyPhotoUrl");
+    if (btnApplyPhotoUrl) {
+      btnApplyPhotoUrl.addEventListener("click", () => {
+        const url = (document.getElementById("ownPhotoUrl")?.value || "").trim();
+        if (!url) {
+          alert("Please enter a valid image web link (URL).");
+          return;
         }
+        window.setPresetPhoto(url);
       });
     }
 
@@ -1492,10 +1644,38 @@
       photoUrlInput.addEventListener("input", (e) => {
         const url = e.target.value.trim();
         const preview = document.getElementById("ownPhotoPreview");
-        const previewWrap = document.getElementById("ownPhotoPreviewWrap");
         if (url && preview) {
           preview.src = url;
-          if (previewWrap) previewWrap.style.display = "block";
+        }
+      });
+    }
+
+    // Patient Profile Photo Input
+    const patientPhotoInput = document.getElementById("patientPhotoFileInput");
+    if (patientPhotoInput) {
+      patientPhotoInput.addEventListener("change", async (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (file && currentPatient) {
+          try {
+            const status = document.getElementById("patientPhotoStatus");
+            if (status) status.textContent = "⏳ Optimizing photo...";
+            const compressed = await compressImageFile(file, 240, 240, 0.82);
+            const avatarImg = document.getElementById("profAvatarImg");
+            const placeholder = document.getElementById("profAvatarPlaceholder");
+            if (avatarImg) { avatarImg.src = compressed; avatarImg.style.display = "block"; }
+            if (placeholder) placeholder.style.display = "none";
+            currentPatient.photoUrl = compressed;
+            localStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(currentPatient));
+            if (window.db) {
+              window.db.collection("users").doc(currentPatient.id).update({
+                photoUrl: compressed
+              }).catch(e => console.warn(e));
+            }
+            if (status) status.textContent = "✓ Photo updated!";
+            showToast("Profile photo updated!", "success");
+          } catch (err) {
+            alert("Could not load image: " + err.message);
+          }
         }
       });
     }

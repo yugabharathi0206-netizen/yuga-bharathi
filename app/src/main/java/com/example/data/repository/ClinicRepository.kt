@@ -1141,6 +1141,30 @@ class ClinicRepository(
                         }
                     }
                 }
+
+            // Real-Time Sync for Clinic & Doctor Profile from Web Owner Portal
+            firestore.collection("clinicProfile").document("main")
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null || snapshot == null || !snapshot.exists()) return@addSnapshotListener
+                    scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                        try {
+                            val webUrl = snapshot.getString("websiteUrl")
+                            val address = snapshot.getString("address")
+                            val phone = snapshot.getString("phone")
+                            val currentClinic = dao.getClinicDirect()
+                            if (currentClinic != null) {
+                                var changed = false
+                                var c = currentClinic
+                                if (!webUrl.isNullOrBlank() && webUrl != c.website) { c = c.copy(website = webUrl); changed = true }
+                                if (!address.isNullOrBlank() && address != c.address) { c = c.copy(address = address); changed = true }
+                                if (!phone.isNullOrBlank() && phone != c.phone) { c = c.copy(phone = phone); changed = true }
+                                if (changed) dao.insertOrUpdateClinic(c)
+                            }
+                        } catch (e: Exception) {
+                            android.util.Log.w("FirestoreSync", "Notice reading cloud clinicProfile: ${e.message}")
+                        }
+                    }
+                }
         } catch (e: Exception) {
             android.util.Log.e("FirestoreSync", "Failed to start Firestore sync", e)
         }
