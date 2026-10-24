@@ -73,8 +73,16 @@ class FirestoreBridge {
     return {
       doc(docId) {
         return {
-          async set(data) {
-            const url = `${self.baseUrl}/${collectionName}/${encodeURIComponent(docId)}?key=${self.config.apiKey}`;
+          async set(data, options = {}) {
+            const isMerge = Boolean(options && options.merge);
+            let url = `${self.baseUrl}/${collectionName}/${encodeURIComponent(docId)}?key=${self.config.apiKey}`;
+            if (isMerge) {
+              const keys = Object.keys(data);
+              if (keys.length > 0) {
+                const mask = keys.map(k => `updateMask.fieldPaths=${encodeURIComponent(k)}`).join("&");
+                url += `&${mask}`;
+              }
+            }
             const fields = self.toFirestoreFields(data);
             const res = await fetch(url, {
               method: "PATCH",
@@ -89,14 +97,14 @@ class FirestoreBridge {
           },
 
           async update(data) {
-            return this.set(data);
+            return this.set(data, { merge: true });
           },
 
           async get() {
             const url = `${self.baseUrl}/${collectionName}/${encodeURIComponent(docId)}?key=${self.config.apiKey}`;
             const res = await fetch(url);
             if (res.status === 404) {
-              return { exists: false, data: () => null };
+              return { exists: false, id: docId, data: () => null };
             }
             if (!res.ok) {
               throw new Error(`Firestore get error: ${res.statusText}`);
@@ -108,6 +116,29 @@ class FirestoreBridge {
               id: docId,
               data: () => clean
             };
+          },
+
+          onSnapshot(callback, errorCallback) {
+            let active = true;
+            let timerId = null;
+            const pollDoc = async () => {
+              if (!active) return;
+              try {
+                const snapshot = await this.get();
+                if (active) callback(snapshot);
+              } catch (e) {
+                if (errorCallback) errorCallback(e);
+                else console.warn(`Doc ${docId} live sync notice:`, e.message);
+              }
+              if (active) {
+                timerId = setTimeout(pollDoc, 2500);
+              }
+            };
+            pollDoc();
+            return () => {
+              active = false;
+              if (timerId) clearTimeout(timerId);
+            };
           }
         };
       },
@@ -117,7 +148,6 @@ class FirestoreBridge {
           limit(num) {
             return {
               async get() {
-                // Structured query via REST
                 const url = `https://firestore.googleapis.com/v1/projects/${self.config.projectId}/databases/${self.config.databaseId}/documents:runQuery?key=${self.config.apiKey}`;
                 const queryPayload = {
                   structuredQuery: {
@@ -160,9 +190,9 @@ class FirestoreBridge {
             };
           },
 
-          onSnapshot(callback) {
-            // Polling listener for live sync
+          onSnapshot(callback, errorCallback) {
             let active = true;
+            let timerId = null;
             const poll = async () => {
               if (!active) return;
               try {
@@ -192,38 +222,91 @@ class FirestoreBridge {
                       const docId = (r.document.name || "").split("/").pop();
                       const cleanData = self.fromFirestoreFields(r.document.fields);
                       return {
-                        id: docId,
+                        id: cleanData.id || cleanData.appointmentId || docId,
+                        exists: true,
                         data: () => cleanData
                       };
                     });
-                  callback({
-                    empty: docs.length === 0,
-                    docs: docs,
-                    forEach(cb) { docs.forEach(cb); }
-                  });
+                  if (active) {
+                    callback({
+                      empty: docs.length === 0,
+                      docs: docs,
+                      size: docs.length,
+                      forEach(cb) { docs.forEach(cb); }
+                    });
+                  }
                 }
               } catch (e) {
-                console.warn("Polling notice:", e);
+                if (errorCallback) errorCallback(e);
+                else console.warn("Polling query notice:", e.message);
               }
-              if (active) setTimeout(poll, 4000);
+              if (active) timerId = setTimeout(poll, 2500);
             };
             poll();
-            return () => { active = false; };
+            return () => {
+              active = false;
+              if (timerId) clearTimeout(timerId);
+            };
           }
         };
       },
 
       async get() {
-        const url = `${self.baseUrl}/${collectionName}?key=${self.config.apiKey}&pageSize=100`;
-        const res = await fetch(url);
-        if (!res.ok) return { empty: true, docs: [] };
-        const data = await res.json();
-        const docs = (data.documents || []).map(d => {
-          const docId = d.name.split("/").pop();
-          const clean = self.fromFirestoreFields(d.fields);
-          return { id: docId, data: () => clean };
+        const url = `https://firestore.googleapis.com/v1/projects/${self.config.projectId}/databases/${self.config.databaseId}/documents:runQuery?key=${self.config.apiKey}`;
+        const queryPayload = {
+          structuredQuery: {
+            from: [{ collectionId: collectionName }]
+          }
+        };
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(queryPayload)
         });
+        if (!res.ok) return { empty: true, docs: [], size: 0 };
+        const results = await res.json();
+        const docs = (results || [])
+          .filter(r => r && r.document)
+          .map(r => {
+            const docId = (r.document.name || "").split("/").pop();
+            const clean = self.fromFirestoreFields(r.document.fields);
+            return {
+              id: clean.id || clean.appointmentId || docId,
+              exists: true,
+              data: () => clean
+            };
+          });
         return { empty: docs.length === 0, docs, size: docs.length };
+      },
+
+      onSnapshot(callback, errorCallback) {
+        let active = true;
+        let timerId = null;
+        const pollCollection = async () => {
+          if (!active) return;
+          try {
+            const snap = await this.get();
+            if (active) {
+              callback({
+                empty: snap.empty,
+                docs: snap.docs,
+                size: snap.size,
+                forEach(cb) { snap.docs.forEach(cb); }
+              });
+            }
+          } catch (e) {
+            if (errorCallback) errorCallback(e);
+            else console.warn(`Collection ${collectionName} live sync notice:`, e.message);
+          }
+          if (active) {
+            timerId = setTimeout(pollCollection, 2500);
+          }
+        };
+        pollCollection();
+        return () => {
+          active = false;
+          if (timerId) clearTimeout(timerId);
+        };
       }
     };
   }

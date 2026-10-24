@@ -722,6 +722,7 @@ class ClinicRepository(
     suspend fun updateAppointmentStatus(appointmentId: String, newStatus: AppointmentStatus) {
         val apt = dao.getAppointmentById(appointmentId) ?: return
         dao.updateAppointment(apt.copy(status = newStatus, updatedAt = System.currentTimeMillis()))
+        syncAppointmentStatusToCloud(null, appointmentId, newStatus.name)
     }
 
     // Admin / Client Action: Reschedule Appointment
@@ -1152,6 +1153,8 @@ class ClinicRepository(
         newDate: String? = null,
         newSlot: String? = null
     ) {
+        val cleanId = appointmentId.trim()
+        if (cleanId.isBlank()) return
         val ctx = customContext ?: context ?: return
         try {
             val dbId = ctx.getString(com.example.R.string.firestore_database_id)
@@ -1168,9 +1171,14 @@ class ClinicRepository(
                 updates["time"] = newSlot
                 updates["timeSlot"] = newSlot
             }
-            firestore.collection("appointments").document(appointmentId)
-                .update(updates)
-            android.util.Log.d("FirestoreSync", "Successfully synced $appointmentId ($status) to cloud")
+            firestore.collection("appointments").document(cleanId)
+                .set(updates, com.google.firebase.firestore.SetOptions.merge())
+                .addOnSuccessListener {
+                    android.util.Log.d("FirestoreSync", "Successfully synced $cleanId ($status) to cloud")
+                }
+                .addOnFailureListener { e ->
+                    android.util.Log.w("FirestoreSync", "Cloud status update failed for $cleanId: ${e.message}")
+                }
         } catch (e: Exception) {
             android.util.Log.w("FirestoreSync", "Cloud status update notice: ${e.message}")
         }

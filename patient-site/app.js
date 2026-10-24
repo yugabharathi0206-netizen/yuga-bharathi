@@ -126,6 +126,7 @@
       if (stored) {
         currentPatient = JSON.parse(stored);
         console.log("✓ Patient Session Restored:", currentPatient.fullName);
+        startPatientAppointmentsListener();
       }
     } catch (e) {
       currentPatient = null;
@@ -255,6 +256,7 @@
     };
     localStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(currentPatient));
     updateNavUI();
+    startPatientAppointmentsListener();
     showToast(`Welcome back, ${currentPatient.fullName}!`, "success");
     return currentPatient;
   }
@@ -280,38 +282,68 @@
       unsubscribeAppointments = null;
     }
 
-    const patientMobile = currentPatient.mobile;
-    const patientId = currentPatient.id;
+    const patientMobile = String(currentPatient.mobile || "").trim();
+    const patientId = String(currentPatient.id || "").trim();
+    const cleanCurrMob = patientMobile.replace(/\D/g, "");
 
     if (window.db) {
       try {
-        // Listen to all appointments for this patient
+        console.log("⚡ Connecting live Firestore sync for patient:", patientMobile, patientId);
         unsubscribeAppointments = window.db.collection("appointments")
           .onSnapshot((snapshot) => {
             const list = [];
+            const seenIds = new Set();
+
             snapshot.forEach(doc => {
               const data = doc.data();
-              const aptMobile = data.patientMobile || data.patientPhone || "";
-              const aptPatientId = data.patientId || "";
+              const aptMobile = String(data.patientMobile || data.patientPhone || "").trim();
+              const aptPatientId = String(data.patientId || "").trim();
+              const cleanAptMob = aptMobile.replace(/\D/g, "");
 
-              if (aptMobile === patientMobile || aptPatientId === patientId) {
+              const mobileMatch = cleanCurrMob.length >= 7 && (
+                cleanAptMob.endsWith(cleanCurrMob) ||
+                cleanCurrMob.endsWith(cleanAptMob) ||
+                cleanAptMob === cleanCurrMob
+              );
+              const idMatch = patientId && aptPatientId && patientId === aptPatientId;
+
+              if (mobileMatch || idMatch) {
+                const docId = cleanDataId(doc.id, data);
+                seenIds.add(docId);
                 list.push({
-                  id: doc.id,
+                  id: docId,
+                  appointmentId: docId,
                   ...data
                 });
               }
             });
 
+            // Also preserve any freshly booked local items if not yet indexed on server
+            const localAppts = getLocalAppts();
+            for (const localApt of localAppts) {
+              const localId = cleanDataId(localApt.id || localApt.appointmentId, localApt);
+              if (!seenIds.has(localId)) {
+                const lMob = String(localApt.patientMobile || localApt.patientPhone || "").replace(/\D/g, "");
+                if (cleanCurrMob && (lMob.endsWith(cleanCurrMob) || cleanCurrMob.endsWith(lMob))) {
+                  list.push(localApt);
+                  seenIds.add(localId);
+                }
+              }
+            }
+
             // Sort newest first
-            list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+            list.sort((a, b) => (b.createdAt || b.updatedAt || 0) - (a.createdAt || a.updatedAt || 0));
             activeAppointments = list;
             saveLocalAppts(list);
             renderDashboard();
             renderAppointmentsHistory();
+            console.log(`✓ Real-time appointments updated (${list.length} appointments). Confirmed: ${list.filter(a => (a.status||"").toUpperCase()==="CONFIRMED").length}`);
           }, (err) => {
             console.warn("Firestore snapshot notice:", err.message);
-            // Fallback to local cache
-            activeAppointments = getLocalAppts().filter(a => a.patientMobile === patientMobile || a.patientId === patientId);
+            activeAppointments = getLocalAppts().filter(a => {
+              const m = String(a.patientMobile || a.patientPhone || "").replace(/\D/g, "");
+              return cleanCurrMob && (m.endsWith(cleanCurrMob) || cleanCurrMob.endsWith(m));
+            });
             renderDashboard();
             renderAppointmentsHistory();
           });
@@ -322,10 +354,55 @@
     }
 
     // Offline fallback
-    activeAppointments = getLocalAppts().filter(a => a.patientMobile === patientMobile || a.patientId === patientId);
+    activeAppointments = getLocalAppts().filter(a => {
+      const m = String(a.patientMobile || a.patientPhone || "").replace(/\D/g, "");
+      return cleanCurrMob && (m.endsWith(cleanCurrMob) || cleanCurrMob.endsWith(m));
+    });
     renderDashboard();
     renderAppointmentsHistory();
   }
+
+  function cleanDataId(id, data) {
+    return (data && (data.id || data.appointmentId)) || id || `HM-${Date.now()}`;
+  }
+
+  // Force-sync on demand
+  window.refreshAppointmentsFromCloud = async function () {
+    if (!currentPatient) {
+      showToast("Please login first to view your appointments.", "info");
+      return;
+    }
+    showToast("🔄 Syncing latest status directly from clinic...", "info");
+    startPatientAppointmentsListener();
+    if (window.db) {
+      try {
+        const snap = await window.db.collection("appointments").get();
+        const cleanCurrMob = String(currentPatient.mobile || "").replace(/\D/g, "");
+        const patientId = String(currentPatient.id || "").trim();
+        const list = [];
+        snap.forEach(doc => {
+          const data = doc.data();
+          const cleanAptMob = String(data.patientMobile || data.patientPhone || "").replace(/\D/g, "");
+          const aptPatientId = String(data.patientId || "").trim();
+          if ((cleanCurrMob.length >= 7 && (cleanAptMob.endsWith(cleanCurrMob) || cleanCurrMob.endsWith(cleanAptMob))) || (patientId && aptPatientId === patientId)) {
+            list.push({ id: doc.id, appointmentId: doc.id, ...data });
+          }
+        });
+        if (list.length > 0) {
+          list.sort((a, b) => (b.createdAt || b.updatedAt || 0) - (a.createdAt || a.updatedAt || 0));
+          activeAppointments = list;
+          saveLocalAppts(list);
+          renderDashboard();
+          renderAppointmentsHistory();
+          showToast(`✅ Synced! Found ${list.length} appointments (${list.filter(a => (a.status||"").toUpperCase()==="CONFIRMED").length} Confirmed).`, "success");
+        } else {
+          showToast("No active appointments found on server.", "info");
+        }
+      } catch (e) {
+        console.warn("Manual sync error:", e);
+      }
+    }
+  };
 
   // ================= RENDER PATIENT DASHBOARD =================
   function renderDashboard() {
@@ -642,6 +719,9 @@
     // 3. Update current memory list
     activeAppointments.unshift(newAppointment);
 
+    // 4. Ensure real-time cloud listener is active
+    startPatientAppointmentsListener();
+
     // Show Confirmation Modal
     const modalTokenEl = document.getElementById("modalAppointmentToken");
     const modalSuccess = document.getElementById("bookingSuccessModal");
@@ -716,6 +796,7 @@
       startPatientAppointmentsListener();
       renderDashboard();
     } else if (hash === "#appointments") {
+      startPatientAppointmentsListener();
       renderAppointmentsHistory();
     } else if (hash === "#book") {
       initBookingView();

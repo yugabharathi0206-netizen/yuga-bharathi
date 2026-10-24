@@ -311,9 +311,19 @@
       </div>
 
       <!-- Upcoming / Active Appointment Highlight -->
-      <div class="section-heading">
-        <h2>Upcoming Appointment Status</h2>
-        <p>Real-time confirmation status synchronized directly with Dr. Balaji's clinic app.</p>
+      <div class="section-heading" style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 10px;">
+        <div>
+          <h2>Upcoming Appointment Status</h2>
+          <p>Real-time confirmation status synchronized directly with Dr. Balaji's clinic app.</p>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: 600; color: #16a34a; background: #dcfce7; padding: 4px 10px; border-radius: 20px;">
+            <span style="width: 8px; height: 8px; border-radius: 50%; background: #16a34a; display: inline-block;"></span> Live Sync Active
+          </span>
+          <button type="button" class="btn btn-outline" style="padding: 6px 12px; font-size: 0.82rem;" onclick="window.refreshAppointmentsFromCloud()">
+            🔄 Check Live Status
+          </button>
+        </div>
       </div>
 
       <div class="upcoming-highlight-card" id="upcomingAppointmentContainer">

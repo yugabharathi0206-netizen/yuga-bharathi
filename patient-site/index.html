@@ -28,6 +28,7 @@
         <a href="#login" class="nav-link">Patient Login</a>
         <a href="#signup" class="nav-link nav-btn">Create Account</a>
         <a href="#owner" class="nav-link" style="color: #047857; font-weight: 700; border: 1px dashed #10b981; border-radius: 6px; padding: 4px 8px;">🔐 Owner Portal</a>
+        <a href="clinic-patient-portal.zip" download="clinic-patient-portal.zip" class="nav-link" style="color: #0284c7; font-weight: 700; background: rgba(14,165,233,0.1); border-radius: 6px; padding: 4px 10px;" title="Download complete website files as ZIP archive">📥 Download ZIP</a>
       </nav>
 
       <!-- Authenticated Patient Navigation -->
@@ -37,6 +38,7 @@
         <a href="#appointments" class="nav-link">My Appointments</a>
         <a href="#profile" class="nav-link">Profile</a>
         <a href="#owner" class="nav-link" id="navOwnerPortalLink" style="color: #047857; font-weight: 700;">🔐 Owner Portal</a>
+        <a href="clinic-patient-portal.zip" download="clinic-patient-portal.zip" class="nav-link" style="color: #0284c7; font-weight: 700; background: rgba(14,165,233,0.1); border-radius: 6px; padding: 4px 10px;" title="Download complete website files as ZIP archive">📥 Download ZIP</a>
         <div class="user-badge">
           <span class="avatar-dot"></span>
           <span id="navUserName">Patient</span>
@@ -309,9 +311,19 @@
       </div>
 
       <!-- Upcoming / Active Appointment Highlight -->
-      <div class="section-heading">
-        <h2>Upcoming Appointment Status</h2>
-        <p>Real-time confirmation status synchronized directly with Dr. Balaji's clinic app.</p>
+      <div class="section-heading" style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 10px;">
+        <div>
+          <h2>Upcoming Appointment Status</h2>
+          <p>Real-time confirmation status synchronized directly with Dr. Balaji's clinic app.</p>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: 600; color: #16a34a; background: #dcfce7; padding: 4px 10px; border-radius: 20px;">
+            <span style="width: 8px; height: 8px; border-radius: 50%; background: #16a34a; display: inline-block;"></span> Live Sync Active
+          </span>
+          <button type="button" class="btn btn-outline" style="padding: 6px 12px; font-size: 0.82rem;" onclick="window.refreshAppointmentsFromCloud()">
+            🔄 Check Live Status
+          </button>
+        </div>
       </div>
 
       <div class="upcoming-highlight-card" id="upcomingAppointmentContainer">
@@ -545,9 +557,14 @@
             <h2>Clinic Owner Command Center</h2>
             <p>Update your clinic website, address, profile, hero image, and appointment slots. Changes instantly reflect on both this website and your Doctor Android App.</p>
           </div>
-          <button id="ownerLogoutBtn" type="button" class="btn btn-secondary btn-sm" style="background: rgba(255,255,255,0.2); color: #fff; border-color: rgba(255,255,255,0.4); white-space: nowrap;">
-            🔒 Lock / Logout
-          </button>
+          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <a href="clinic-patient-portal.zip" download="clinic-patient-portal.zip" class="btn btn-secondary btn-sm" style="background: rgba(255,255,255,0.22); color: #fff; border-color: rgba(255,255,255,0.45); text-decoration: none; white-space: nowrap;">
+              📥 Download ZIP
+            </a>
+            <button id="ownerLogoutBtn" type="button" class="btn btn-secondary btn-sm" style="background: rgba(255,255,255,0.2); color: #fff; border-color: rgba(255,255,255,0.4); white-space: nowrap;">
+              🔒 Lock / Logout
+            </button>
+          </div>
         </div>
 
         <form id="ownerClinicForm" style="display: flex; flex-direction: column; gap: 20px;">
@@ -728,7 +745,11 @@
 
   <!-- Site Footer -->
   <footer class="site-footer">
-    <p>© 2026 Dr. Balaji Homeo Care. All rights reserved. • Classical Constitutional Homeopathy</p>
+    <p>
+      © 2026 Dr. Balaji Homeo Care. All rights reserved. • Classical Constitutional Homeopathy
+      <span style="margin: 0 8px;">•</span>
+      <a href="clinic-patient-portal.zip" download="clinic-patient-portal.zip" style="color: #a7f3d0; font-weight: 600; text-decoration: underline;">📥 Download Website Files (ZIP)</a>
+    </p>
   </footer>
 
   <!-- Firebase v10 Compat SDK -->

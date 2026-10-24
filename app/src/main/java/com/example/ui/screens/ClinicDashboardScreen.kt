@@ -167,6 +167,13 @@ fun ClinicDashboardScreen(
                                 items(filteredAppointments) { apt ->
                                     ClinicAppointmentActionCard(
                                         appointment = apt,
+                                        onConfirm = {
+                                            scope.launch {
+                                                repository.confirmAppointmentByAdmin(apt.id)
+                                                repository.syncAppointmentConfirmationToCloud(context, apt.id)
+                                                Toast.makeText(context, "Confirmed #${apt.id}", Toast.LENGTH_SHORT).show()
+                                            }
+                                        },
                                         onCheckIn = {
                                             scope.launch {
                                                 val token = repository.checkInPatient(apt.id, todayDate)
@@ -248,6 +255,7 @@ fun ClinicDashboardScreen(
 @Composable
 fun ClinicAppointmentActionCard(
     appointment: AppointmentEntity,
+    onConfirm: () -> Unit = {},
     onCheckIn: () -> Unit,
     onStartConsultation: () -> Unit,
     onCompleteConsultation: () -> Unit,
@@ -323,7 +331,7 @@ fun ClinicAppointmentActionCard(
                 when (appointment.status) {
                     AppointmentStatus.PENDING -> {
                         Button(
-                            onClick = onCheckIn,
+                            onClick = onConfirm,
                             shape = RoundedCornerShape(8.dp),
                             modifier = Modifier.weight(1f),
                             colors = ButtonDefaults.buttonColors(containerColor = HealingGreen)
