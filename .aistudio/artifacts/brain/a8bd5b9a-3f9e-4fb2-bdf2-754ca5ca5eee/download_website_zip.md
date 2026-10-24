@@ -8,13 +8,17 @@ The complete, production-ready website package has been updated with real-time s
 1. **Real-Time Appointment Confirmation Sync**:
    * Fixed the Firestore real-time listener on the website (`collection.onSnapshot` via structured `runQuery`).
    * When a patient books an appointment on the website, it appears in the Doctor Android App as `PENDING`.
-   * When Dr. Balaji taps **Confirm** (either from Doctor Dashboard, Admin Management, or Appointment Detail Dialog), the Android app merges `status: "CONFIRMED"` directly into Cloud Firestore.
-   * The patient's web dashboard immediately updates from `⏳ Pending Doctor Confirmation` to `✅ Appointment Confirmed` with green badge and instructions without staying stuck on pending.
-   * Added a `🟢 Live Sync Active` indicator and a `🔄 Check Live Status` button on the patient dashboard.
-2. **Permanent Owner Portal & Cloud Sync**:
+   * When Dr. Balaji taps **Confirm**, the Android app merges `status: "CONFIRMED"` directly into Cloud Firestore.
+   * The patient's web dashboard immediately updates from `⏳ Pending Doctor Confirmation` to `✅ Appointment Confirmed` with green badge and instructions.
+2. **Clinical Experience & Specialization Editor**:
+   * **Clinical Experience** field: e.g. `15+ Years Clinical Practice` — displays as a golden badge on the Doctor Card in the Home Page hero section.
+   * **Primary Specialization & Title**: e.g. `Chief Consultant & Classical Prescriber` — displays under the Doctor's name on the Home Page and Doctor profile.
+   * **Clinical Treatment Specialties / Diseases Treated**: multi-line list where each line dynamically generates a specialized condition card (Skin & Psoriasis, Respiratory & Asthma, Migraine, IBS, Pediatric Care, Hormonal Balance, etc.) on the Home page.
+   * Fully synchronized with Cloud Firestore (`clinicProfile/main`), local cache, and the Doctor Android App.
+3. **Permanent Owner Portal & Cloud Sync**:
    * The single permanent master owner account (`balaji2000@gmail.com`) is locked in Cloud Firestore and local storage.
-   * Profile changes, clinic web address (`https://yugabharathi0206-netizen.github.io/yuga-bharathi/`), clinic address (`Dr.Balaji homeo care,vandavasi,604408`), timings, and custom slots synchronize 2-way between web and app.
-3. **ZIP Download Available in Multiple Places**:
+   * Profile changes, clinic web address (`https://yugabharathi0206-netizen.github.io/yuga-bharathi/`), clinic address (`Dr.Balaji homeo care,vandavasi,604408`), photo, timings, and custom slots synchronize 2-way between web and app.
+4. **ZIP Download Available in Multiple Places**:
    * Direct download link in the top navigation bar, in the Owner Portal, and in the website footer.
 
 ---

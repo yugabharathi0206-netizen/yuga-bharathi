@@ -101,9 +101,12 @@
           </div>
           <h3 id="heroDoctorName" class="doctor-aside-name">Dr. Balaji</h3>
           <p id="heroDoctorQual" class="doctor-aside-qual">B.H.M.S., M.D. (Homeopathy)</p>
+          <div id="heroDoctorExpBadge" style="display: inline-flex; align-items: center; gap: 5px; background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; padding: 3px 12px; border-radius: 20px; font-size: 0.78rem; font-weight: 700; margin: 4px 0 6px 0;">
+            ⭐ <span id="heroDoctorExperience">15+ Years Clinical Practice</span>
+          </div>
           <p id="heroDoctorExp" class="doctor-aside-exp">Chief Consultant & Classical Prescriber</p>
           <button id="heroQuickOwnerBtn" class="owner-pill-badge" style="margin-top: 8px;" onclick="window.navigateTo('#owner')">
-            ⚙️ Edit Clinic & Slots
+            ⚙️ Edit Profile, Experience & Slots
           </button>
         </div>
       </div>
@@ -147,7 +150,7 @@
         <p>Comprehensive constitutional healing tailored to your individual symptom totality.</p>
       </div>
 
-      <div class="specialty-grid">
+      <div class="specialty-grid" id="homeSpecialtyGrid">
         <div class="specialty-card">
           <div class="specialty-icon">🌸</div>
           <h3>Skin, Psoriasis & Allergies</h3>
@@ -628,13 +631,42 @@
                 <input type="text" id="ownDoctorName" class="form-input" placeholder="e.g. Dr. Balaji" required>
               </div>
               <div class="form-group">
-                <label class="form-label" for="ownDoctorQual">Qualifications</label>
+                <label class="form-label" for="ownDoctorQual">Qualifications / Degrees</label>
                 <input type="text" id="ownDoctorQual" class="form-input" placeholder="e.g. B.H.M.S., M.D. (Homeopathy)">
               </div>
             </div>
-            <div class="form-group">
-              <label class="form-label" for="ownDoctorBio">Specialization / Tagline</label>
-              <input type="text" id="ownDoctorBio" class="form-input" placeholder="e.g. Chief Consultant & Classical Prescriber">
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+              <div class="form-group">
+                <label class="form-label" for="ownDoctorExp" style="font-weight: 700; color: #047857;">
+                  ⭐ Clinical Experience *
+                </label>
+                <input type="text" id="ownDoctorExp" class="form-input" placeholder="e.g. 15+ Years Clinical Experience" required>
+                <span style="font-size: 0.76rem; color: var(--text-muted);">Shown on Doctor Badge on Home Page</span>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="ownDoctorBio" style="font-weight: 700; color: #0369a1;">
+                  🩺 Primary Specialization & Title *
+                </label>
+                <input type="text" id="ownDoctorBio" class="form-input" placeholder="e.g. Chief Consultant & Classical Prescriber" required>
+                <span style="font-size: 0.76rem; color: var(--text-muted);">Main doctor title and role</span>
+              </div>
+            </div>
+
+            <div class="form-group" style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 14px; margin-top: 6px;">
+              <label class="form-label" for="ownSpecialtyAreas" style="font-weight: 700; color: #166534; margin-bottom: 6px;">
+                🌿 Clinical Treatment Specialties & Diseases Treated
+              </label>
+              <textarea id="ownSpecialtyAreas" class="form-input" rows="4" placeholder="Enter specialty conditions (one per line):
+Skin, Psoriasis & Allergies
+Respiratory & Chronic Asthma
+Migraine & Stress Disorders
+Digestive Health & IBS
+Pediatric Immunity & Growth
+Hormonal & Thyroid Balance" style="background: white; font-size: 0.88rem; line-height: 1.5;"></textarea>
+              <span style="font-size: 0.78rem; color: #15803d; margin-top: 4px; display: block;">
+                Each line automatically creates a specialized care card in the 'Specialized Homeopathy Care' section on the Home Page.
+              </span>
             </div>
             <!-- Upgraded Doctor Profile Photo Manager -->
             <div class="form-group" style="background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 14px; padding: 18px; margin-top: 14px;">

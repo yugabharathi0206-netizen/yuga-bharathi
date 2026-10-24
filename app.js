@@ -32,7 +32,9 @@
     clinicName: "Dr. Balaji Homeo Care",
     doctorName: "Dr. Balaji",
     qualification: "B.H.M.S., M.D. (Homeopathy)",
+    experience: "15+ Years Clinical Practice",
     specialization: "Chief Consultant & Classical Prescriber",
+    specialtyAreas: "Skin, Psoriasis & Allergies\nRespiratory & Chronic Asthma\nMigraine & Stress Disorders\nDigestive Health & IBS\nPediatric Immunity & Growth\nHormonal & Thyroid Balance",
     address: "Main Road, Classical Healthcare Complex",
     websiteUrl: "https://yugabharathi0206-netizen.github.io/yuga-bharathi/",
     phone: "+91 98401 00000",
@@ -949,13 +951,18 @@
 
     const heroDocName = document.getElementById("heroDoctorName");
     const heroDocQual = document.getElementById("heroDoctorQual");
+    const heroDocExpBadge = document.getElementById("heroDoctorExperience");
     const heroDocExp = document.getElementById("heroDoctorExp");
     const heroPhoto = document.getElementById("heroDoctorPhoto");
 
     if (heroDocName) heroDocName.textContent = currentClinicProfile.doctorName;
     if (heroDocQual) heroDocQual.textContent = currentClinicProfile.qualification || "B.H.M.S., M.D. (Homeopathy)";
+    if (heroDocExpBadge) heroDocExpBadge.textContent = currentClinicProfile.experience || "15+ Years Clinical Practice";
     if (heroDocExp) heroDocExp.textContent = currentClinicProfile.specialization || "Chief Consultant & Classical Prescriber";
     if (heroPhoto && currentClinicProfile.photoUrl) heroPhoto.src = currentClinicProfile.photoUrl;
+
+    // Render specialty treatment cards dynamically
+    renderSpecialtyCards();
 
     // Clinic info strip
     const timingsEl = document.getElementById("infoConsultTimings");
@@ -980,6 +987,53 @@
       const cleanWa = (currentClinicProfile.whatsAppNumber || currentClinicProfile.phone).replace(/[^0-9]/g, "");
       waEl.href = `https://wa.me/${cleanWa}`;
     }
+  }
+
+  function renderSpecialtyCards() {
+    const grid = document.getElementById("homeSpecialtyGrid");
+    if (!grid) return;
+
+    const defaultSpecialties = [
+      { icon: "🌸", title: "Skin, Psoriasis & Allergies", desc: "Holistic resolution of chronic eczema, urticaria, fungal infections, acne, and stubborn vitiligo from root cause." },
+      { icon: "🫁", title: "Respiratory & Chronic Asthma", desc: "Long-term relief from wheezing, allergic rhinitis, recurrent bronchitis, sinusitis, and dust sensitivity without inhaler dependency." },
+      { icon: "🧠", title: "Migraine & Stress Disorders", desc: "Gentle healing for chronic vascular headaches, tension migraines, insomnia, anxiety neurosis, and psychosomatic tension." },
+      { icon: "🥗", title: "Digestive Health & IBS", desc: "Constitutional remedies for GERD, acid reflux, chronic gastritis, irritable bowel syndrome, and metabolic sluggishness." },
+      { icon: "👶", title: "Pediatric Immunity & Growth", desc: "Natural gentle care for recurrent tonsillitis, low childhood immunity, adenoids, poor appetite, and behavioral restlessness." },
+      { icon: "🌿", title: "Hormonal & Thyroid Balance", desc: "Targeted constitutional therapy for PCOD/PCOS, thyroid dysregulation, hair fall, and peri-menopausal hot flashes." }
+    ];
+
+    const areas = currentClinicProfile.specialtyAreas;
+    if (areas && typeof areas === "string" && areas.trim().length > 0) {
+      const lines = areas.split("\n")
+        .map(l => l.trim())
+        .filter(l => l.length > 0);
+
+      if (lines.length > 0) {
+        const icons = ["🌸", "🫁", "🧠", "🥗", "👶", "🌿", "🩺", "💊", "✨", "🧬", "🌟", "🛡️"];
+        grid.innerHTML = lines.map((line, idx) => {
+          const icon = icons[idx % icons.length];
+          const matchedDefault = defaultSpecialties.find(d => d.title.toLowerCase().includes(line.toLowerCase()) || line.toLowerCase().includes(d.title.toLowerCase()));
+          const desc = matchedDefault ? matchedDefault.desc : `Specialized constitutional homeopathy treatment and individualized care by ${currentClinicProfile.doctorName || "Dr. Balaji"}.`;
+          return `
+            <div class="specialty-card">
+              <div class="specialty-icon">${icon}</div>
+              <h3>${line}</h3>
+              <p>${desc}</p>
+            </div>
+          `;
+        }).join("");
+        return;
+      }
+    }
+
+    // Default fallback
+    grid.innerHTML = defaultSpecialties.map(item => `
+      <div class="specialty-card">
+        <div class="specialty-icon">${item.icon}</div>
+        <h3>${item.title}</h3>
+        <p>${item.desc}</p>
+      </div>
+    `).join("");
   }
 
   function initOwnerPortalView() {
@@ -1039,7 +1093,9 @@
     setVal("ownWhatsApp", currentClinicProfile.whatsAppNumber || currentClinicProfile.phone);
     setVal("ownDoctorName", currentClinicProfile.doctorName);
     setVal("ownDoctorQual", currentClinicProfile.qualification);
-    setVal("ownDoctorBio", currentClinicProfile.specialization);
+    setVal("ownDoctorExp", currentClinicProfile.experience || "15+ Years Clinical Practice");
+    setVal("ownDoctorBio", currentClinicProfile.specialization || "Chief Consultant & Classical Prescriber");
+    setVal("ownSpecialtyAreas", currentClinicProfile.specialtyAreas || "Skin, Psoriasis & Allergies\nRespiratory & Chronic Asthma\nMigraine & Stress Disorders\nDigestive Health & IBS\nPediatric Immunity & Growth\nHormonal & Thyroid Balance");
     setVal("ownPhotoUrl", currentClinicProfile.photoUrl);
     setVal("ownMorningStart", currentClinicProfile.morningStart || "09:00 AM");
     setVal("ownMorningEnd", currentClinicProfile.morningEnd || "12:00 PM");
@@ -1697,7 +1753,9 @@
           const whatsAppNumber = (document.getElementById("ownWhatsApp")?.value || "").trim() || phone;
           const doctorName = (document.getElementById("ownDoctorName")?.value || "").trim() || currentClinicProfile.doctorName;
           const qualification = (document.getElementById("ownDoctorQual")?.value || "").trim() || currentClinicProfile.qualification;
-          const specialization = (document.getElementById("ownDoctorBio")?.value || "").trim() || currentClinicProfile.specialization;
+          const experience = (document.getElementById("ownDoctorExp")?.value || "").trim() || currentClinicProfile.experience || "15+ Years Clinical Practice";
+          const specialization = (document.getElementById("ownDoctorBio")?.value || "").trim() || currentClinicProfile.specialization || "Chief Consultant & Classical Prescriber";
+          const specialtyAreas = (document.getElementById("ownSpecialtyAreas")?.value || "").trim() || currentClinicProfile.specialtyAreas;
           const photoUrl = (document.getElementById("ownPhotoUrl")?.value || "").trim() || currentClinicProfile.photoUrl;
           const morningStart = (document.getElementById("ownMorningStart")?.value || "").trim() || "09:00 AM";
           const morningEnd = (document.getElementById("ownMorningEnd")?.value || "").trim() || "12:00 PM";
@@ -1714,7 +1772,9 @@
             whatsAppNumber,
             doctorName,
             qualification,
+            experience,
             specialization,
+            specialtyAreas,
             photoUrl,
             morningStart,
             morningEnd,

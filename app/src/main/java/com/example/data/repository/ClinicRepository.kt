@@ -1151,6 +1151,11 @@ class ClinicRepository(
                             val webUrl = snapshot.getString("websiteUrl")
                             val address = snapshot.getString("address")
                             val phone = snapshot.getString("phone")
+                            val doctorName = snapshot.getString("doctorName")
+                            val specialization = snapshot.getString("specialization")
+                            val qualification = snapshot.getString("qualification")
+                            val photoUrl = snapshot.getString("photoUrl")
+
                             val currentClinic = dao.getClinicDirect()
                             if (currentClinic != null) {
                                 var changed = false
@@ -1158,7 +1163,19 @@ class ClinicRepository(
                                 if (!webUrl.isNullOrBlank() && webUrl != c.website) { c = c.copy(website = webUrl); changed = true }
                                 if (!address.isNullOrBlank() && address != c.address) { c = c.copy(address = address); changed = true }
                                 if (!phone.isNullOrBlank() && phone != c.phone) { c = c.copy(phone = phone); changed = true }
+                                if (!doctorName.isNullOrBlank() && doctorName != c.doctorName) { c = c.copy(doctorName = doctorName); changed = true }
                                 if (changed) dao.insertOrUpdateClinic(c)
+                            }
+
+                            val firstDoc = dao.getFirstDoctor()
+                            if (firstDoc != null) {
+                                var docChanged = false
+                                var d = firstDoc
+                                if (!doctorName.isNullOrBlank() && doctorName != d.name) { d = d.copy(name = doctorName); docChanged = true }
+                                if (!specialization.isNullOrBlank() && specialization != d.specialization) { d = d.copy(specialization = specialization); docChanged = true }
+                                if (!qualification.isNullOrBlank() && qualification != d.qualification) { d = d.copy(qualification = qualification); docChanged = true }
+                                if (!photoUrl.isNullOrBlank() && photoUrl != d.photoUrl) { d = d.copy(photoUrl = photoUrl); docChanged = true }
+                                if (docChanged) dao.insertDoctor(d)
                             }
                         } catch (e: Exception) {
                             android.util.Log.w("FirestoreSync", "Notice reading cloud clinicProfile: ${e.message}")
@@ -1242,12 +1259,13 @@ class ClinicRepository(
                 map["slotDurationMinutes"] = d.slotDurationMinutes
                 map["qualification"] = d.qualification
                 map["specialization"] = d.specialization
+                map["experience"] = "${d.experienceYears}+ Years Clinical Practice"
                 map["bio"] = d.bio
                 if (d.photoUrl.isNotBlank()) {
                     map["photoUrl"] = d.photoUrl
                 }
             }
-            firestore.collection("clinicProfile").document("main").set(map)
+            firestore.collection("clinicProfile").document("main").set(map, com.google.firebase.firestore.SetOptions.merge())
             android.util.Log.d("FirestoreSync", "Clinic profile successfully synced to Cloud Firestore!")
         } catch (e: Exception) {
             android.util.Log.w("FirestoreSync", "Cloud clinicProfile sync note: ${e.message}")
